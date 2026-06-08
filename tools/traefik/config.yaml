@@ -1,0 +1,52 @@
+http:
+  routers:
+    traefik:
+      entryPoints:
+        - websecure
+      rule: "Host(`traefik.proudlyhabit.dev`)"
+      service: traefik
+      tls:
+        options: proudlyhabit
+        domains:
+          - main: "proudlyhabit.dev"
+    site:
+      entryPoints:
+        - websecure
+      rule: "Host(`proudlyhabit.dev`)"
+      service: site
+      tls:
+        options: proudlyhabit
+        domains:
+          - main: "proudlyhabit.dev"
+
+  services:
+    traefik:
+      loadbalancer:
+        servers:
+          - url: "http://localhost:9092"
+    site:
+      loadbalancer:
+        servers:
+          - url: "http://localhost:3000"
+tls:
+  stores:
+    default:
+      defaultCertificate:
+        certFile: ./tools/certs/proudlyhabit.dev.pem
+        keyFile: ./tools/certs/proudlyhabit.dev-key.pem
+  options:
+    proudlyhabit:
+      cipherSuites:
+        - TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+        - TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256
+        - TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256
+        - TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
+        - TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+        - TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384
+        - TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+        - TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305
+        - TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305
+        - TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
+        - TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+        - TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256
+        - TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256
