@@ -25,7 +25,9 @@ struct ProudlyApp: App {
 
   var body: some Scene {
     WindowGroup {
-      ContentView()
+      HomeView()
+        .preferredColorScheme(.light)
+        .tint(ProudlyTheme.purple)
     }
     .modelContainer(sharedModelContainer)
   }
