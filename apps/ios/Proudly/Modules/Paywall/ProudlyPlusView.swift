@@ -12,10 +12,12 @@ struct ProudlyPlusView: View {
 
   private let benefits: [(icon: String, text: String, color: Color)] = [
     ("infinity", "Unlimited habits", ProudlyTheme.purple),
-    ("icloud.fill", "Cloud sync and backup", ProudlyTheme.blue),
-    ("chart.bar.fill", "Detailed insights", ProudlyTheme.mint),
+    ("icloud.fill", "iCloud sync and backup", ProudlyTheme.blue),
+    ("chart.bar.fill", "Advanced insights", ProudlyTheme.mint),
+    ("calendar.badge.clock", "Weekly reports", ProudlyTheme.blue),
+    ("heart.text.square.fill", "Proud Moments history", ProudlyTheme.pink),
     ("paintpalette.fill", "Custom themes", ProudlyTheme.pink),
-    ("square.grid.2x2.fill", "Widgets and more", .orange),
+    ("square.grid.2x2.fill", "Widgets (coming soon)", .orange),
   ]
 
   var body: some View {

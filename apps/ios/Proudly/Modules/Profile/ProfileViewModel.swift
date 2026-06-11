@@ -10,7 +10,8 @@ import Observation
 
 @Observable
 final class ProfileViewModel {
-  var iCloudSyncEnabled: Bool = true
+  let isPlusUser: Bool = false
+  var iCloudSyncEnabled: Bool = false
   var remindersEnabled: Bool = true
   var selectedTheme: String = "Liquid Glass"
 }

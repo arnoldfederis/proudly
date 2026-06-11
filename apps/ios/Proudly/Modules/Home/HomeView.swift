@@ -17,6 +17,7 @@ private enum HomeTab: Hashable {
 
 struct HomeView: View {
   @State private var selectedTab: HomeTab = .today
+  @State private var isPlus: Bool = false
 
   var body: some View {
     TabView(selection: $selectedTab) {
@@ -26,8 +27,10 @@ struct HomeView: View {
       Tab("Habits", systemImage: "checkmark.rectangle.stack", value: .habits) {
         HabitsView()
       }
-      Tab("Insights", systemImage: "chart.bar", value: .insights) {
-        InsightsView()
+      if isPlus {
+        Tab("Insights", systemImage: "chart.bar", value: .insights) {
+          InsightsView()
+        }
       }
       Tab("Profile", systemImage: "person.crop.circle", value: .profile) {
         ProfileView()

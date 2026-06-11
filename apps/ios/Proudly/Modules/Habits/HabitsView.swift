@@ -11,6 +11,10 @@ struct HabitsView: View {
   @State private var viewModel = HabitsViewModel()
   @State private var selectedHabit: Habit?
   @State private var isAddPresented: Bool = false
+  @State private var isPaywallPresented: Bool = false
+
+  private let isPlusUser = false
+  private let freeHabitLimit = 3
 
   var body: some View {
     NavigationStack {
@@ -20,7 +24,8 @@ struct HabitsView: View {
         GeometryReader { proxy in
           ScrollView {
             VStack(spacing: 16) {
-              filterPicker.padding(.top, 8)
+              freePlanBanner.padding(.top, 8)
+              filterPicker
 
               if viewModel.filteredHabits.isEmpty {
                 emptyState
@@ -45,17 +50,18 @@ struct HabitsView: View {
       }
       .navigationTitle("Habits")
       .navigationBarTitleDisplayMode(.large)
+      .toolbar {
+        ToolbarItem(placement: .topBarTrailing) {
+          Button(action: presentAddHabit) {
+            Image(systemName: "plus")
+          }
+          .tint(ProudlyTheme.purple)
+        }
+      }
       .navigationDestination(item: $selectedHabit) { habit in
         HabitDetailView(habit: habit) { updatedHabit in
           viewModel.updateHabit(updatedHabit)
         }
-      }
-      .overlay(alignment: .bottomTrailing) {
-        FloatingActionButton(systemImage: "plus", color: ProudlyTheme.purple) {
-          isAddPresented = true
-        }
-        .padding(.bottom, 5)
-        .padding(.trailing, 20)
       }
       .sheet(isPresented: $isAddPresented) {
         HabitFormView { habit in
@@ -63,7 +69,45 @@ struct HabitsView: View {
           isAddPresented = false
         }
       }
+      .sheet(isPresented: $isPaywallPresented) {
+        ProudlyPlusView()
+      }
     }
+  }
+
+  private var freePlanBanner: some View {
+    HStack(spacing: 14) {
+      ZStack {
+        Circle()
+          .fill(ProudlyTheme.purple.opacity(0.15))
+          .frame(width: 40, height: 40)
+        Image(systemName: "star.fill")
+          .font(.system(size: 16))
+          .foregroundStyle(ProudlyTheme.purple)
+      }
+      VStack(alignment: .leading, spacing: 3) {
+        Text("Free plan: 3 habits")
+          .font(.system(size: 14, weight: .semibold))
+        Text("Upgrade to Proudly Plus for unlimited habits.")
+          .font(.caption)
+          .foregroundStyle(.secondary)
+      }
+      Spacer()
+      Button {
+        isPaywallPresented = true
+      } label: {
+        Text("Upgrade")
+          .font(.system(size: 12, weight: .bold))
+          .foregroundStyle(.white)
+          .padding(.horizontal, 12)
+          .padding(.vertical, 6)
+          .background(ProudlyTheme.purplePinkGradient)
+          .clipShape(Capsule())
+      }
+      .buttonStyle(.plain)
+    }
+    .padding(16)
+    .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 18))
   }
 
   private var filterPicker: some View {
@@ -105,6 +149,16 @@ struct HabitsView: View {
         .foregroundStyle(.secondary)
     }
     .padding(40)
+  }
+
+  private func presentAddHabit() {
+    Haptics.selection()
+
+    if !isPlusUser && viewModel.habits.count >= freeHabitLimit {
+      isPaywallPresented = true
+    } else {
+      isAddPresented = true
+    }
   }
 }
 

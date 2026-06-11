@@ -11,6 +11,10 @@ struct TodayView: View {
   @State private var viewModel = TodayViewModel()
   @State private var selectedHabit: Habit?
   @State private var isAddPresented: Bool = false
+  @State private var isPaywallPresented: Bool = false
+
+  private let isPlusUser = false
+  private let freeHabitLimit = 3
 
   var body: some View {
     NavigationStack {
@@ -35,23 +39,27 @@ struct TodayView: View {
       }
       .navigationTitle("Today")
       .navigationBarTitleDisplayMode(.large)
+      .toolbar {
+        ToolbarItem(placement: .topBarTrailing) {
+          Button(action: presentAddHabit) {
+            Image(systemName: "plus")
+          }
+          .tint(ProudlyTheme.purple)
+        }
+      }
       .navigationDestination(item: $selectedHabit) { habit in
         HabitDetailView(habit: habit) { updatedHabit in
           viewModel.updateHabit(updatedHabit)
         }
-      }
-      .overlay(alignment: .bottomTrailing) {
-        FloatingActionButton(systemImage: "plus", color: ProudlyTheme.purple) {
-          isAddPresented = true
-        }
-        .padding(.bottom, 5)
-        .padding(.trailing, 20)
       }
       .sheet(isPresented: $isAddPresented) {
         HabitFormView { habit in
           viewModel.addHabit(habit)
           isAddPresented = false
         }
+      }
+      .sheet(isPresented: $isPaywallPresented) {
+        ProudlyPlusView()
       }
     }
   }
@@ -126,6 +134,16 @@ struct TodayView: View {
     }
     .padding(18)
     .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 18))
+  }
+
+  private func presentAddHabit() {
+    Haptics.selection()
+
+    if !isPlusUser && viewModel.habits.count >= freeHabitLimit {
+      isPaywallPresented = true
+    } else {
+      isAddPresented = true
+    }
   }
 }
 

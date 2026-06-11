@@ -12,10 +12,7 @@ struct HabitDetailView: View {
   let onSave: (Habit) -> Void
   @State private var isDone = false
   @State private var isEditPresented: Bool = false
-
-  private let completedDays: Set<Int> = [
-    1, 3, 5, 6, 7, 8, 10, 12, 14, 15, 16, 18, 20, 22, 24, 25, 26, 27, 28, 29,
-  ]
+  @State private var isPaywallPresented: Bool = false
 
   init(habit: Habit, onSave: @escaping (Habit) -> Void = { _ in }) {
     _habit = State(initialValue: habit)
@@ -30,7 +27,8 @@ struct HabitDetailView: View {
         VStack(spacing: 24) {
           iconBubble
           statsRow
-          calendarCard
+          sevenDayPreviewCard
+          monthlyHistoryLockedCard
           markDoneButton
           Spacer(minLength: 40)
         }
@@ -40,12 +38,13 @@ struct HabitDetailView: View {
     .navigationTitle(habit.name)
     .navigationBarTitleDisplayMode(.inline)
     .onAppear { isDone = habit.isCompletedToday }
-    .overlay(alignment: .bottomTrailing) {
-      FloatingActionButton(systemImage: "pencil", color: habit.color) {
-        isEditPresented = true
+    .toolbar {
+      ToolbarItem(placement: .topBarTrailing) {
+        Button(action: presentEditHabit) {
+          Image(systemName: "pencil")
+        }
+        .tint(habit.color)
       }
-      .padding(.bottom, 5)
-      .padding(.trailing, 20)
     }
     .sheet(isPresented: $isEditPresented) {
       HabitFormView(habit: habit) { updatedHabit in
@@ -53,6 +52,9 @@ struct HabitDetailView: View {
         onSave(updatedHabit)
         isEditPresented = false
       }
+    }
+    .sheet(isPresented: $isPaywallPresented) {
+      ProudlyPlusView()
     }
   }
 
@@ -92,29 +94,65 @@ struct HabitDetailView: View {
     }
   }
 
-  private var calendarCard: some View {
+  private var sevenDayPreviewCard: some View {
     VStack(alignment: .leading, spacing: 14) {
-      Text("June 2026")
+      Text("Last 7 Days")
         .font(.system(size: 16, weight: .semibold))
 
-      LazyVGrid(
-        columns: Array(repeating: GridItem(.flexible(), spacing: 6), count: 7),
-        spacing: 6
-      ) {
-        ForEach(1...30, id: \.self) { day in
-          ZStack {
-            Circle()
-              .fill(completedDays.contains(day) ? habit.color : Color.clear)
-              .frame(height: 36)
-            Text("\(day)")
-              .font(.system(size: 13, weight: completedDays.contains(day) ? .semibold : .regular))
-              .foregroundStyle(completedDays.contains(day) ? .white : .primary)
+      HStack(spacing: 6) {
+        ForEach(lastSevenDays, id: \.self) { dateKey in
+          VStack(spacing: 6) {
+            ZStack {
+              Circle()
+                .fill(habit.completedDates.contains(dateKey) ? habit.color : Color.gray.opacity(0.15))
+                .frame(width: 36, height: 36)
+              if habit.completedDates.contains(dateKey) {
+                Image(systemName: "checkmark")
+                  .font(.system(size: 12, weight: .bold))
+                  .foregroundStyle(.white)
+              }
+            }
+            Text(dayLabel(for: dateKey))
+              .font(.caption2)
+              .foregroundStyle(.secondary)
           }
+          .frame(maxWidth: .infinity)
         }
       }
     }
     .padding(20)
     .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 22))
+  }
+
+  private var monthlyHistoryLockedCard: some View {
+    Button {
+      isPaywallPresented = true
+    } label: {
+      HStack(spacing: 14) {
+        ZStack {
+          Circle()
+            .fill(ProudlyTheme.purple.opacity(0.15))
+            .frame(width: 42, height: 42)
+          Image(systemName: "calendar")
+            .foregroundStyle(ProudlyTheme.purple)
+        }
+        VStack(alignment: .leading, spacing: 3) {
+          Text("Monthly History")
+            .font(.system(size: 15, weight: .semibold))
+            .foregroundStyle(.primary)
+          Text("Unlock full habit history with Proudly Plus.")
+            .font(.caption)
+            .foregroundStyle(.secondary)
+        }
+        Spacer()
+        Image(systemName: "lock.fill")
+          .font(.system(size: 13))
+          .foregroundStyle(ProudlyTheme.purple)
+      }
+      .padding(16)
+      .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 18))
+    }
+    .buttonStyle(.plain)
   }
 
   private var markDoneButton: some View {
@@ -136,6 +174,29 @@ struct HabitDetailView: View {
       .clipShape(RoundedRectangle(cornerRadius: 20))
     }
     .buttonStyle(.plain)
+  }
+
+  private var lastSevenDays: [String] {
+    let formatter = DateFormatter()
+    formatter.dateFormat = "yyyy-MM-dd"
+    return (0..<7).reversed().map { offset in
+      let date = Calendar.current.date(byAdding: .day, value: -offset, to: .now) ?? .now
+      return formatter.string(from: date)
+    }
+  }
+
+  private func dayLabel(for dateKey: String) -> String {
+    let inputFormatter = DateFormatter()
+    inputFormatter.dateFormat = "yyyy-MM-dd"
+    guard let date = inputFormatter.date(from: dateKey) else { return "" }
+    let outputFormatter = DateFormatter()
+    outputFormatter.dateFormat = "EEE"
+    return String(outputFormatter.string(from: date).prefix(1))
+  }
+
+  private func presentEditHabit() {
+    Haptics.selection()
+    isEditPresented = true
   }
 }
 

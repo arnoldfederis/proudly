@@ -10,7 +10,6 @@ import SwiftUI
 struct ProfileView: View {
   @State private var viewModel = ProfileViewModel()
   @State private var showPaywall = false
-  @State private var navigateToProudMoments = false
 
   var body: some View {
     NavigationStack {
@@ -33,45 +32,58 @@ struct ProfileView: View {
       .sheet(isPresented: $showPaywall) {
         ProudlyPlusView()
       }
-      .navigationDestination(isPresented: $navigateToProudMoments) {
-        ProudMomentsView()
-      }
     }
   }
 
   private var profileCard: some View {
-    HStack(spacing: 16) {
-      ZStack {
-        Circle()
-          .fill(ProudlyTheme.purplePinkGradient)
-          .frame(width: 60, height: 60)
-        Text("A")
-          .font(.system(size: 26, weight: .bold))
-          .foregroundStyle(.white)
+    VStack(spacing: 14) {
+      HStack(spacing: 16) {
+        ZStack {
+          Circle()
+            .fill(ProudlyTheme.purplePinkGradient)
+            .frame(width: 60, height: 60)
+          Text("A")
+            .font(.system(size: 26, weight: .bold))
+            .foregroundStyle(.white)
+        }
+
+        VStack(alignment: .leading, spacing: 4) {
+          Text("Arnolfo")
+            .font(.system(size: 18, weight: .bold))
+          Text("3 habits · 12-day streak")
+            .font(.caption)
+            .foregroundStyle(.secondary)
+        }
+
+        Spacer()
       }
 
-      VStack(alignment: .leading, spacing: 4) {
-        Text("Arnolfo")
-          .font(.system(size: 18, weight: .bold))
-        Text("3 habits · 12-day streak")
-          .font(.caption)
-          .foregroundStyle(.secondary)
-      }
+      Divider().opacity(0.4)
 
-      Spacer()
+      HStack {
+        VStack(alignment: .leading, spacing: 2) {
+          Text("Proudly Free")
+            .font(.system(size: 14, weight: .semibold))
+          Text("3 habits included")
+            .font(.caption)
+            .foregroundStyle(.secondary)
+        }
 
-      Button {
-        showPaywall = true
-      } label: {
-        Text("Plus")
-          .font(.system(size: 12, weight: .bold))
-          .foregroundStyle(.white)
-          .padding(.horizontal, 14)
-          .padding(.vertical, 7)
-          .background(ProudlyTheme.purplePinkGradient)
-          .clipShape(Capsule())
+        Spacer()
+
+        Button {
+          showPaywall = true
+        } label: {
+          Text("Upgrade")
+            .font(.system(size: 13, weight: .bold))
+            .foregroundStyle(.white)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+            .background(ProudlyTheme.purplePinkGradient)
+            .clipShape(Capsule())
+        }
+        .buttonStyle(.plain)
       }
-      .buttonStyle(.plain)
     }
     .padding(20)
     .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 22))
@@ -79,32 +91,44 @@ struct ProfileView: View {
 
   private var settingsSection: some View {
     VStack(spacing: 0) {
-      ProfileRow(icon: "icloud.fill", label: "iCloud Sync", color: ProudlyTheme.blue) {
-        Toggle("", isOn: $viewModel.iCloudSyncEnabled).labelsHidden()
+      Button {
+        showPaywall = true
+      } label: {
+        ProfileRow(icon: "icloud.fill", label: "iCloud Sync", color: ProudlyTheme.blue) {
+          PlusBadge()
+        }
       }
+      .buttonStyle(.plain)
+
       Divider().padding(.leading, 56).opacity(0.4)
+
       ProfileRow(icon: "bell.fill", label: "Reminders", color: ProudlyTheme.pink) {
         Toggle("", isOn: $viewModel.remindersEnabled).labelsHidden()
       }
+
       Divider().padding(.leading, 56).opacity(0.4)
-      ProfileRow(icon: "paintbrush.fill", label: "Theme", color: ProudlyTheme.purple) {
-        HStack(spacing: 4) {
-          Text(viewModel.selectedTheme)
-            .font(.subheadline)
-            .foregroundStyle(.secondary)
-          Image(systemName: "chevron.right")
-            .font(.caption2)
-            .foregroundStyle(.tertiary)
+
+      Button {
+        showPaywall = true
+      } label: {
+        ProfileRow(icon: "paintbrush.fill", label: "Theme", color: ProudlyTheme.purple) {
+          HStack(spacing: 6) {
+            Text(viewModel.selectedTheme)
+              .font(.subheadline)
+              .foregroundStyle(.secondary)
+            PlusBadge()
+          }
         }
       }
+      .buttonStyle(.plain)
+
       Divider().padding(.leading, 56).opacity(0.4)
+
       Button {
-        navigateToProudMoments = true
+        showPaywall = true
       } label: {
         ProfileRow(icon: "heart.fill", label: "Proud Moments", color: ProudlyTheme.mint) {
-          Image(systemName: "chevron.right")
-            .font(.caption2)
-            .foregroundStyle(.tertiary)
+          PlusBadge()
         }
       }
       .buttonStyle(.plain)
@@ -127,6 +151,22 @@ struct ProfileView: View {
       }
     }
     .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 22))
+  }
+}
+
+private struct PlusBadge: View {
+  var body: some View {
+    HStack(spacing: 4) {
+      Image(systemName: "lock.fill")
+        .font(.caption2)
+      Text("Plus")
+        .font(.system(size: 11, weight: .bold))
+    }
+    .foregroundStyle(.white)
+    .padding(.horizontal, 8)
+    .padding(.vertical, 4)
+    .background(ProudlyTheme.purplePinkGradient)
+    .clipShape(Capsule())
   }
 }
 
