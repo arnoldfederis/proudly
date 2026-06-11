@@ -10,6 +10,7 @@ import SwiftUI
 struct HabitsView: View {
   @State private var viewModel = HabitsViewModel()
   @State private var selectedHabit: Habit?
+  @State private var isAddPresented: Bool = false
 
   var body: some View {
     NavigationStack {
@@ -45,7 +46,22 @@ struct HabitsView: View {
       .navigationTitle("Habits")
       .navigationBarTitleDisplayMode(.large)
       .navigationDestination(item: $selectedHabit) { habit in
-        HabitDetailView(habit: habit)
+        HabitDetailView(habit: habit) { updatedHabit in
+          viewModel.updateHabit(updatedHabit)
+        }
+      }
+      .overlay(alignment: .bottomTrailing) {
+        FloatingActionButton(systemImage: "plus", color: ProudlyTheme.purple) {
+          isAddPresented = true
+        }
+        .padding(.bottom, 5)
+        .padding(.trailing, 20)
+      }
+      .sheet(isPresented: $isAddPresented) {
+        HabitFormView { habit in
+          viewModel.addHabit(habit)
+          isAddPresented = false
+        }
       }
     }
   }
@@ -94,7 +110,6 @@ struct HabitsView: View {
 
 struct HabitCardView: View {
   let habit: Habit
-  let showsCompletionOverlay: Bool = true
 
   var body: some View {
     HStack(spacing: 14) {
@@ -134,14 +149,6 @@ struct HabitCardView: View {
     }
     .padding(16)
     .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 20))
-    .overlay(alignment: .topTrailing) {
-      if showsCompletionOverlay && habit.isCompletedToday {
-        Image(systemName: "checkmark.circle.fill")
-          .font(.system(size: 18))
-          .foregroundStyle(habit.color)
-          .padding(10)
-      }
-    }
   }
 }
 

@@ -15,9 +15,18 @@ enum ProudlyTheme {
 
   static let backgroundGradient = LinearGradient(
     colors: [
-      Color(red: 0.96, green: 0.94, blue: 1.00),
-      Color(red: 0.92, green: 0.96, blue: 1.00),
-      Color(red: 0.97, green: 0.94, blue: 0.99),
+      dynamicColor(
+        light: UIColor(red: 0.96, green: 0.94, blue: 1.00, alpha: 1),
+        dark: UIColor(red: 0.09, green: 0.08, blue: 0.16, alpha: 1)
+      ),
+      dynamicColor(
+        light: UIColor(red: 0.92, green: 0.96, blue: 1.00, alpha: 1),
+        dark: UIColor(red: 0.08, green: 0.12, blue: 0.18, alpha: 1)
+      ),
+      dynamicColor(
+        light: UIColor(red: 0.97, green: 0.94, blue: 0.99, alpha: 1),
+        dark: UIColor(red: 0.14, green: 0.09, blue: 0.16, alpha: 1)
+      ),
     ],
     startPoint: .topLeading,
     endPoint: .bottomTrailing
@@ -28,4 +37,12 @@ enum ProudlyTheme {
     startPoint: .leading,
     endPoint: .trailing
   )
+
+  private static func dynamicColor(light: UIColor, dark: UIColor) -> Color {
+    Color(
+      uiColor: UIColor { traits in
+        traits.userInterfaceStyle == .dark ? dark : light
+      }
+    )
+  }
 }

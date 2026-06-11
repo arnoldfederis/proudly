@@ -8,12 +8,19 @@
 import SwiftUI
 
 struct HabitDetailView: View {
-  let habit: Habit
+  @State private var habit: Habit
+  let onSave: (Habit) -> Void
   @State private var isDone = false
+  @State private var isEditPresented: Bool = false
 
   private let completedDays: Set<Int> = [
     1, 3, 5, 6, 7, 8, 10, 12, 14, 15, 16, 18, 20, 22, 24, 25, 26, 27, 28, 29,
   ]
+
+  init(habit: Habit, onSave: @escaping (Habit) -> Void = { _ in }) {
+    _habit = State(initialValue: habit)
+    self.onSave = onSave
+  }
 
   var body: some View {
     ZStack {
@@ -33,6 +40,20 @@ struct HabitDetailView: View {
     .navigationTitle(habit.name)
     .navigationBarTitleDisplayMode(.inline)
     .onAppear { isDone = habit.isCompletedToday }
+    .overlay(alignment: .bottomTrailing) {
+      FloatingActionButton(systemImage: "pencil", color: habit.color) {
+        isEditPresented = true
+      }
+      .padding(.bottom, 5)
+      .padding(.trailing, 20)
+    }
+    .sheet(isPresented: $isEditPresented) {
+      HabitFormView(habit: habit) { updatedHabit in
+        habit = updatedHabit
+        onSave(updatedHabit)
+        isEditPresented = false
+      }
+    }
   }
 
   private var iconBubble: some View {

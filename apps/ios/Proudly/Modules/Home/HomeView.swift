@@ -17,8 +17,6 @@ private enum HomeTab: Hashable {
 
 struct HomeView: View {
   @State private var selectedTab: HomeTab = .today
-  @State private var previousTab: HomeTab = .today
-  @State private var isAddPresented = false
 
   var body: some View {
     TabView(selection: $selectedTab) {
@@ -36,35 +34,8 @@ struct HomeView: View {
       }
     }
     .tint(ProudlyTheme.purple)
-    .overlay(alignment: .bottomTrailing) {
-      if selectedTab == .today || selectedTab == .habits {
-        Button {
-          isAddPresented = true
-        } label: {
-          Image(systemName: "plus")
-            .font(.title2.bold())
-            .foregroundColor(.white)
-            .frame(width: 52, height: 52)
-            .background(ProudlyTheme.purple)
-            .clipShape(Circle())
-            .shadow(radius: 6)
-        }
-        .padding(.bottom, 60)
-        .padding(.trailing, 20)
-      }
-    }
     .onChange(of: selectedTab) { oldValue, newValue in
       Haptics.selection()
-
-      if newValue == .today || newValue == .habits {
-        previousTab = newValue
-      }
-    }
-    .sheet(isPresented: $isAddPresented) {
-      NewHabitView(onSave: {
-        selectedTab = previousTab
-        isAddPresented = false
-      })
     }
   }
 }

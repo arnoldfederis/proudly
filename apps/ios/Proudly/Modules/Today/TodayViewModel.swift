@@ -31,6 +31,15 @@ final class TodayViewModel {
     }
   }
 
+  func addHabit(_ habit: Habit) {
+    habits.insert(habit, at: 0)
+  }
+
+  func updateHabit(_ habit: Habit) {
+    guard let index = habits.firstIndex(where: { $0.id == habit.id }) else { return }
+    habits[index] = habit
+  }
+
   private func dateKey(for date: Date) -> String {
     let formatter = DateFormatter()
     formatter.dateFormat = "yyyy-MM-dd"

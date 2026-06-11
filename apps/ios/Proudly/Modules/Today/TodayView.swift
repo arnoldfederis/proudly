@@ -10,6 +10,7 @@ import SwiftUI
 struct TodayView: View {
   @State private var viewModel = TodayViewModel()
   @State private var selectedHabit: Habit?
+  @State private var isAddPresented: Bool = false
 
   var body: some View {
     NavigationStack {
@@ -35,7 +36,22 @@ struct TodayView: View {
       .navigationTitle("Today")
       .navigationBarTitleDisplayMode(.large)
       .navigationDestination(item: $selectedHabit) { habit in
-        HabitDetailView(habit: habit)
+        HabitDetailView(habit: habit) { updatedHabit in
+          viewModel.updateHabit(updatedHabit)
+        }
+      }
+      .overlay(alignment: .bottomTrailing) {
+        FloatingActionButton(systemImage: "plus", color: ProudlyTheme.purple) {
+          isAddPresented = true
+        }
+        .padding(.bottom, 5)
+        .padding(.trailing, 20)
+      }
+      .sheet(isPresented: $isAddPresented) {
+        HabitFormView { habit in
+          viewModel.addHabit(habit)
+          isAddPresented = false
+        }
       }
     }
   }

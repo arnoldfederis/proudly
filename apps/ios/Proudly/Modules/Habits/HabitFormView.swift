@@ -1,30 +1,28 @@
 //
-//  NewHabitView.swift
+//  HabitFormView.swift
 //  Proudly
 //
 //  Created by Arnolfo Federis on 6/9/26.
 //
 
 import SwiftUI
+import UIKit
 
-struct NewHabitView: View {
+struct HabitFormView: View {
   @Environment(\.dismiss) private var dismiss
-  var onSave: () -> Void = {}
 
-  @State private var habitName = ""
-  @State private var habitDescription = ""
-  @State private var selectedIconIndex = 0
-  @State private var customEmoji = ""
+  let habit: Habit?
+  var onSave: (Habit) -> Void = { _ in }
+
+  @State private var habitName: String
+  @State private var habitDescription: String
+  @State private var selectedIconIndex: Int
+  @State private var customEmoji: String
   @State private var showEmojiInput = false
-  @State private var selectedColorIndex = 0
-  @State private var customColor = ProudlyTheme.purple
-  @State private var dailyReminderEnabled = false
-  @State private var reminderTime: Date = {
-    var c = Calendar.current.dateComponents([.year, .month, .day], from: .now)
-    c.hour = 9
-    c.minute = 0
-    return Calendar.current.date(from: c) ?? .now
-  }()
+  @State private var selectedColorIndex: Int
+  @State private var customColor: Color
+  @State private var dailyReminderEnabled: Bool
+  @State private var reminderTime: Date
   @FocusState private var emojiFieldFocused: Bool
 
   private let icons = [
@@ -37,10 +35,61 @@ struct NewHabitView: View {
     .orange, .red, .yellow, .teal,
   ]
 
+  init(habit: Habit? = nil, onSave: @escaping (Habit) -> Void = { _ in }) {
+    self.habit = habit
+    self.onSave = onSave
+
+    let iconOptions = Self.iconOptions
+    let colorOptions = Self.colorOptions
+    let seededReminderTime = Self.reminderDate(from: habit?.reminder)
+
+    let selectedIconIndex: Int
+    let customEmoji: String
+    if let icon = habit?.icon, let index = iconOptions.firstIndex(of: icon) {
+      selectedIconIndex = index
+      customEmoji = ""
+    } else if let icon = habit?.icon, !icon.isEmpty {
+      selectedIconIndex = -1
+      customEmoji = icon
+    } else {
+      selectedIconIndex = 0
+      customEmoji = ""
+    }
+
+    let selectedColorIndex = Self.colorIndex(for: habit?.color, options: colorOptions)
+    let fallbackColor = habit?.color ?? ProudlyTheme.purple
+
+    _habitName = State(initialValue: habit?.name ?? "")
+    _habitDescription = State(initialValue: habit?.note ?? "")
+    _selectedIconIndex = State(initialValue: selectedIconIndex)
+    _customEmoji = State(initialValue: customEmoji)
+    _selectedColorIndex = State(initialValue: selectedColorIndex)
+    _customColor = State(initialValue: selectedColorIndex == -1 ? fallbackColor : colorOptions[selectedColorIndex])
+    _dailyReminderEnabled = State(initialValue: habit?.reminder != nil)
+    _reminderTime = State(initialValue: seededReminderTime)
+  }
+
+  private static let iconOptions = [
+    "star.fill", "heart.fill", "drop.fill", "figure.walk", "book.fill",
+    "moon.fill", "sun.max.fill", "leaf.fill", "bolt.fill", "dumbbell.fill",
+    "music.note", "fork.knife",
+  ]
+  private static let colorOptions: [Color] = [
+    ProudlyTheme.purple, ProudlyTheme.pink, ProudlyTheme.blue, ProudlyTheme.mint,
+    .orange, .red, .yellow, .teal,
+  ]
+
+  private var isEditing: Bool { habit != nil }
   private var isCustomIcon: Bool { selectedIconIndex == -1 }
   private var isCustomColor: Bool { selectedColorIndex == -1 }
   private var effectiveColor: Color { isCustomColor ? customColor : colors[selectedColorIndex] }
-  private var canSave: Bool { !habitName.trimmingCharacters(in: .whitespaces).isEmpty }
+  private var effectiveIcon: String {
+    if isCustomIcon {
+      return customEmoji.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "star.fill" : customEmoji
+    }
+    return icons[selectedIconIndex]
+  }
+  private var canSave: Bool { !habitName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
 
   var body: some View {
     NavigationStack {
@@ -59,7 +108,7 @@ struct NewHabitView: View {
       .background {
         ProudlyTheme.backgroundGradient.ignoresSafeArea()
       }
-      .navigationTitle("New Habit")
+      .navigationTitle(isEditing ? "Edit Habit" : "New Habit")
       .navigationBarTitleDisplayMode(.inline)
       .toolbar {
         ToolbarItem(placement: .cancellationAction) {
@@ -68,9 +117,8 @@ struct NewHabitView: View {
           }
         }
         ToolbarItem(placement: .confirmationAction) {
-          Button("Add") {
-            dismiss()
-            onSave()
+          Button(isEditing ? "Save" : "Add") {
+            saveHabit()
           }
           .fontWeight(.semibold)
           .disabled(!canSave)
@@ -78,8 +126,6 @@ struct NewHabitView: View {
       }
     }
   }
-
-  // MARK: Icon
 
   private var iconSection: some View {
     VStack(alignment: .leading, spacing: 10) {
@@ -108,7 +154,6 @@ struct NewHabitView: View {
             .buttonStyle(.plain)
           }
 
-          // Custom emoji slot
           Button {
             selectedIconIndex = -1
             showEmojiInput = true
@@ -141,9 +186,10 @@ struct NewHabitView: View {
         HStack(spacing: 10) {
           TextField("Type an emoji…", text: $customEmoji)
             .focused($emojiFieldFocused)
-            .onChange(of: customEmoji) { _, new in
-              guard !new.isEmpty else { return }
-              customEmoji = String(new.prefix(1))
+            .onChange(of: customEmoji) { _, newValue in
+              let trimmed = newValue.trimmingCharacters(in: .whitespacesAndNewlines)
+              guard !trimmed.isEmpty else { return }
+              customEmoji = String(trimmed.prefix(1))
               showEmojiInput = false
               emojiFieldFocused = false
             }
@@ -163,8 +209,6 @@ struct NewHabitView: View {
     .animation(.spring(response: 0.3, dampingFraction: 0.8), value: showEmojiInput)
   }
 
-  // MARK: Name
-
   private var nameField: some View {
     VStack(alignment: .leading, spacing: 8) {
       Text("Habit Name")
@@ -175,8 +219,6 @@ struct NewHabitView: View {
         .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 14))
     }
   }
-
-  // MARK: Description
 
   private var descriptionField: some View {
     VStack(alignment: .leading, spacing: 8) {
@@ -189,8 +231,6 @@ struct NewHabitView: View {
         .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 14))
     }
   }
-
-  // MARK: Color
 
   private var colorSection: some View {
     VStack(alignment: .leading, spacing: 10) {
@@ -220,7 +260,6 @@ struct NewHabitView: View {
             .buttonStyle(.plain)
           }
 
-          // Custom color picker slot — overlay keeps our design, ColorPicker handles the tap
           ZStack {
             ColorPicker("", selection: $customColor, supportsOpacity: false)
               .labelsHidden()
@@ -252,8 +291,6 @@ struct NewHabitView: View {
       }
     }
   }
-
-  // MARK: Daily Reminder
 
   private var reminderSection: some View {
     VStack(spacing: 0) {
@@ -292,8 +329,88 @@ struct NewHabitView: View {
     .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 16))
     .animation(.spring(response: 0.35, dampingFraction: 0.8), value: dailyReminderEnabled)
   }
+
+  private func saveHabit() {
+    let savedHabit = Habit(
+      id: habit?.id ?? UUID(),
+      name: habitName.trimmingCharacters(in: .whitespacesAndNewlines),
+      icon: effectiveIcon,
+      color: effectiveColor,
+      streak: habit?.streak ?? 0,
+      bestStreak: habit?.bestStreak ?? 0,
+      completedDates: habit?.completedDates ?? [],
+      note: habitDescription.trimmingCharacters(in: .whitespacesAndNewlines),
+      reminder: dailyReminderEnabled ? Self.reminderString(from: reminderTime) : nil
+    )
+    onSave(savedHabit)
+    dismiss()
+  }
+
+  private static func colorIndex(for color: Color?, options: [Color]) -> Int {
+    guard let color else { return 0 }
+    guard let targetComponents = UIColor(color).rgbaComponents else { return -1 }
+
+    for (index, option) in options.enumerated() {
+      guard let optionComponents = UIColor(option).rgbaComponents else { continue }
+      if optionComponents.isClose(to: targetComponents) {
+        return index
+      }
+    }
+    return -1
+  }
+
+  private static func reminderDate(from reminder: String?) -> Date {
+    guard let reminder else { return defaultReminderDate }
+    let formatter = DateFormatter()
+    formatter.dateFormat = "h:mm a"
+    return formatter.date(from: reminder) ?? defaultReminderDate
+  }
+
+  private static func reminderString(from date: Date) -> String {
+    let formatter = DateFormatter()
+    formatter.dateFormat = "h:mm a"
+    return formatter.string(from: date)
+  }
+
+  private static var defaultReminderDate: Date {
+    var components = Calendar.current.dateComponents([.year, .month, .day], from: .now)
+    components.hour = 9
+    components.minute = 0
+    return Calendar.current.date(from: components) ?? .now
+  }
 }
 
-#Preview {
-  NewHabitView()
+private struct RGBAComponents {
+  let red: CGFloat
+  let green: CGFloat
+  let blue: CGFloat
+  let alpha: CGFloat
+
+  func isClose(to other: RGBAComponents, tolerance: CGFloat = 0.01) -> Bool {
+    abs(red - other.red) < tolerance &&
+      abs(green - other.green) < tolerance &&
+      abs(blue - other.blue) < tolerance &&
+      abs(alpha - other.alpha) < tolerance
+  }
+}
+
+private extension UIColor {
+  var rgbaComponents: RGBAComponents? {
+    var red: CGFloat = 0
+    var green: CGFloat = 0
+    var blue: CGFloat = 0
+    var alpha: CGFloat = 0
+    guard getRed(&red, green: &green, blue: &blue, alpha: &alpha) else {
+      return nil
+    }
+    return RGBAComponents(red: red, green: green, blue: blue, alpha: alpha)
+  }
+}
+
+#Preview("New") {
+  HabitFormView()
+}
+
+#Preview("Edit") {
+  HabitFormView(habit: Habit.samples[0])
 }

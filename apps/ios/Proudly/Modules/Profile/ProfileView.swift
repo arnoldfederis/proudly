@@ -22,7 +22,6 @@ struct ProfileView: View {
             profileCard
             settingsSection
             legalSection
-            signOutButton
             Spacer(minLength: 80)
           }
           .padding(.horizontal, 20)
@@ -128,20 +127,6 @@ struct ProfileView: View {
       }
     }
     .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 22))
-  }
-
-  private var signOutButton: some View {
-    Button {
-      Haptics.impact(.light)
-    } label: {
-      Text("Sign Out")
-        .font(.system(size: 16, weight: .medium))
-        .foregroundStyle(.red)
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 16)
-        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 18))
-    }
-    .buttonStyle(.plain)
   }
 }
 
