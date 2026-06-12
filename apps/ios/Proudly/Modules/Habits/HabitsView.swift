@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct HabitsView: View {
+  @Environment(ThemeViewModel.self) private var theme
   @State private var viewModel = HabitsViewModel()
   @State private var selectedHabit: Habit?
   @State private var isAddPresented: Bool = false
@@ -19,13 +20,12 @@ struct HabitsView: View {
   var body: some View {
     NavigationStack {
       ZStack {
-        ProudlyTheme.backgroundGradient.ignoresSafeArea()
+        theme.activeTheme.backgroundGradient.ignoresSafeArea()
 
         GeometryReader { proxy in
           ScrollView {
             VStack(spacing: 16) {
               freePlanBanner.padding(.top, 8)
-              filterPicker
 
               if viewModel.filteredHabits.isEmpty {
                 emptyState
@@ -52,10 +52,14 @@ struct HabitsView: View {
       .navigationBarTitleDisplayMode(.large)
       .toolbar {
         ToolbarItem(placement: .topBarTrailing) {
+          filterToolbar
+        }
+        ToolbarSpacer(.fixed, placement: .topBarTrailing)
+        ToolbarItem(placement: .topBarTrailing) {
           Button(action: presentAddHabit) {
             Image(systemName: "plus")
           }
-          .tint(ProudlyTheme.purple)
+          .tint(theme.activeTheme.accentColor)
         }
       }
       .navigationDestination(item: $selectedHabit) { habit in
@@ -79,11 +83,11 @@ struct HabitsView: View {
     HStack(spacing: 14) {
       ZStack {
         Circle()
-          .fill(ProudlyTheme.purple.opacity(0.15))
+          .fill(theme.activeTheme.accentColor.opacity(0.15))
           .frame(width: 40, height: 40)
         Image(systemName: "star.fill")
           .font(.system(size: 16))
-          .foregroundStyle(ProudlyTheme.purple)
+          .foregroundStyle(theme.activeTheme.accentColor)
       }
       VStack(alignment: .leading, spacing: 3) {
         Text("Free plan: 3 habits")
@@ -101,17 +105,17 @@ struct HabitsView: View {
           .foregroundStyle(.white)
           .padding(.horizontal, 12)
           .padding(.vertical, 6)
-          .background(ProudlyTheme.purplePinkGradient)
+          .background(theme.activeTheme.accentGradient)
           .clipShape(Capsule())
       }
       .buttonStyle(.plain)
     }
     .padding(16)
-    .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 18))
+    .proudlyGlass(cornerRadius: 18)
   }
 
-  private var filterPicker: some View {
-    HStack(spacing: 0) {
+  private var filterToolbar: some View {
+    Menu {
       ForEach(HabitsViewModel.HabitFilter.allCases, id: \.self) { filter in
         Button {
           withAnimation(.spring(response: 0.3)) {
@@ -119,22 +123,18 @@ struct HabitsView: View {
             Haptics.selection()
           }
         } label: {
-          Text(filter.rawValue)
-            .font(.system(size: 14, weight: .semibold))
-            .foregroundStyle(viewModel.filter == filter ? .white : .secondary)
-            .padding(.vertical, 9)
-            .frame(maxWidth: .infinity)
-            .background {
-              if viewModel.filter == filter {
-                Capsule().fill(ProudlyTheme.purple)
-              }
-            }
+          if viewModel.filter == filter {
+            Label(filter.rawValue, systemImage: "checkmark")
+          } else {
+            Text(filter.rawValue)
+          }
         }
-        .buttonStyle(.plain)
       }
+    } label: {
+      Image(systemName: "line.3.horizontal.decrease.circle")
+        .font(.system(size: 17, weight: .semibold))
+        .foregroundStyle(theme.activeTheme.accentColor)
     }
-    .padding(4)
-    .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 16))
   }
 
   private var emptyState: some View {
@@ -201,11 +201,14 @@ struct HabitCardView: View {
           .foregroundStyle(.secondary)
       }
     }
+    .frame(maxWidth: .infinity, alignment: .leading)
     .padding(16)
-    .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 20))
+    .contentShape(Rectangle())
+    .proudlyGlass(cornerRadius: 20)
   }
 }
 
 #Preview {
   HabitsView()
+    .environment(ThemeViewModel())
 }

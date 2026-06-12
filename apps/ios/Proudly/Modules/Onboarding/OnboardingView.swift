@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct OnboardingView: View {
+  @Environment(ThemeViewModel.self) private var theme
   var onGetStarted: () -> Void = {}
 
   private let features: [(icon: String, text: String, color: Color)] = [
@@ -19,7 +20,7 @@ struct OnboardingView: View {
 
   var body: some View {
     ZStack {
-      ProudlyTheme.backgroundGradient.ignoresSafeArea()
+      theme.activeTheme.backgroundGradient.ignoresSafeArea()
 
       VStack(spacing: 0) {
         Spacer()
@@ -80,7 +81,7 @@ struct OnboardingView: View {
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 14)
-        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 16))
+        .proudlyGlass(cornerRadius: 16)
       }
     }
   }
@@ -101,4 +102,5 @@ struct OnboardingView: View {
 
 #Preview {
   OnboardingView()
+    .environment(ThemeViewModel())
 }

@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct ProudMomentsView: View {
+  @Environment(ThemeViewModel.self) private var theme
   private let moments = ProudMoment.samples
 
   private var grouped: [(String, [ProudMoment])] {
@@ -28,7 +29,7 @@ struct ProudMomentsView: View {
 
   var body: some View {
     ZStack {
-      ProudlyTheme.backgroundGradient.ignoresSafeArea()
+      theme.activeTheme.backgroundGradient.ignoresSafeArea()
 
       ScrollView {
         VStack(spacing: 0) {
@@ -53,6 +54,7 @@ struct ProudMomentsView: View {
     }
     .navigationTitle("Proud Moments")
     .navigationBarTitleDisplayMode(.large)
+    .tint(theme.activeTheme.accentColor)
   }
 
   private func sectionLabel(for date: Date) -> String {
@@ -111,7 +113,7 @@ struct ProudMomentCard: View {
       .buttonStyle(.plain)
     }
     .padding(16)
-    .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 18))
+    .proudlyGlass(cornerRadius: 18)
   }
 }
 
@@ -119,4 +121,5 @@ struct ProudMomentCard: View {
   NavigationStack {
     ProudMomentsView()
   }
+  .environment(ThemeViewModel())
 }

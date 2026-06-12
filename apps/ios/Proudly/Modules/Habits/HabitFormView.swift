@@ -10,6 +10,7 @@ import UIKit
 
 struct HabitFormView: View {
   @Environment(\.dismiss) private var dismiss
+  @Environment(ThemeViewModel.self) private var theme
 
   let habit: Habit?
   var onSave: (Habit) -> Void = { _ in }
@@ -64,7 +65,8 @@ struct HabitFormView: View {
     _selectedIconIndex = State(initialValue: selectedIconIndex)
     _customEmoji = State(initialValue: customEmoji)
     _selectedColorIndex = State(initialValue: selectedColorIndex)
-    _customColor = State(initialValue: selectedColorIndex == -1 ? fallbackColor : colorOptions[selectedColorIndex])
+    _customColor = State(
+      initialValue: selectedColorIndex == -1 ? fallbackColor : colorOptions[selectedColorIndex])
     _dailyReminderEnabled = State(initialValue: habit?.reminder != nil)
     _reminderTime = State(initialValue: seededReminderTime)
   }
@@ -85,7 +87,8 @@ struct HabitFormView: View {
   private var effectiveColor: Color { isCustomColor ? customColor : colors[selectedColorIndex] }
   private var effectiveIcon: String {
     if isCustomIcon {
-      return customEmoji.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "star.fill" : customEmoji
+      return customEmoji.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        ? "star.fill" : customEmoji
     }
     return icons[selectedIconIndex]
   }
@@ -93,20 +96,21 @@ struct HabitFormView: View {
 
   var body: some View {
     NavigationStack {
-      ScrollView {
-        VStack(alignment: .leading, spacing: 28) {
-          iconSection
-          nameField
-          descriptionField
-          colorSection
-          reminderSection
+      ZStack {
+        theme.activeTheme.backgroundGradient.ignoresSafeArea()
+
+        ScrollView {
+          VStack(alignment: .leading, spacing: 28) {
+            iconSection
+            nameField
+            descriptionField
+            colorSection
+            reminderSection
+          }
+          .padding(.horizontal, 20)
+          .padding(.top, 24)
+          .padding(.bottom, 48)
         }
-        .padding(.horizontal, 20)
-        .padding(.top, 24)
-        .padding(.bottom, 48)
-      }
-      .background {
-        ProudlyTheme.backgroundGradient.ignoresSafeArea()
       }
       .navigationTitle(isEditing ? "Edit Habit" : "New Habit")
       .navigationBarTitleDisplayMode(.inline)
@@ -115,16 +119,20 @@ struct HabitFormView: View {
           Button("Cancel") {
             dismiss()
           }
+          //          .tint(effectiveColor)
         }
         ToolbarItem(placement: .confirmationAction) {
           Button(isEditing ? "Save" : "Add") {
             saveHabit()
           }
+          //          .tint(effectiveColor)
           .fontWeight(.semibold)
           .disabled(!canSave)
         }
       }
+      .tint(.primary)
     }
+    .preferredColorScheme(theme.activeTheme == .midnightCalm ? .dark : nil)
   }
 
   private var iconSection: some View {
@@ -194,7 +202,7 @@ struct HabitFormView: View {
               emojiFieldFocused = false
             }
             .padding(12)
-            .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 12))
+            .proudlyGlass(cornerRadius: 12)
 
           Button("Cancel") {
             showEmojiInput = false
@@ -216,7 +224,7 @@ struct HabitFormView: View {
         .foregroundStyle(.secondary)
       TextField("e.g. Drink water", text: $habitName)
         .padding(14)
-        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 14))
+        .proudlyGlass(cornerRadius: 14)
     }
   }
 
@@ -228,7 +236,7 @@ struct HabitFormView: View {
       TextField("What's your intention?", text: $habitDescription, axis: .vertical)
         .lineLimit(3, reservesSpace: true)
         .padding(14)
-        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 14))
+        .proudlyGlass(cornerRadius: 14)
     }
   }
 
@@ -326,7 +334,7 @@ struct HabitFormView: View {
         .padding(.vertical, 12)
       }
     }
-    .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 16))
+    .proudlyGlass(cornerRadius: 16)
     .animation(.spring(response: 0.35, dampingFraction: 0.8), value: dailyReminderEnabled)
   }
 
@@ -387,15 +395,13 @@ private struct RGBAComponents {
   let alpha: CGFloat
 
   func isClose(to other: RGBAComponents, tolerance: CGFloat = 0.01) -> Bool {
-    abs(red - other.red) < tolerance &&
-      abs(green - other.green) < tolerance &&
-      abs(blue - other.blue) < tolerance &&
-      abs(alpha - other.alpha) < tolerance
+    abs(red - other.red) < tolerance && abs(green - other.green) < tolerance
+      && abs(blue - other.blue) < tolerance && abs(alpha - other.alpha) < tolerance
   }
 }
 
-private extension UIColor {
-  var rgbaComponents: RGBAComponents? {
+extension UIColor {
+  fileprivate var rgbaComponents: RGBAComponents? {
     var red: CGFloat = 0
     var green: CGFloat = 0
     var blue: CGFloat = 0
@@ -409,8 +415,10 @@ private extension UIColor {
 
 #Preview("New") {
   HabitFormView()
+    .environment(ThemeViewModel())
 }
 
 #Preview("Edit") {
   HabitFormView(habit: Habit.samples[0])
+    .environment(ThemeViewModel())
 }

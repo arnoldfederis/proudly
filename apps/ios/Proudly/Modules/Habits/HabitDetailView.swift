@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct HabitDetailView: View {
+  @Environment(ThemeViewModel.self) private var theme
   @State private var habit: Habit
   let onSave: (Habit) -> Void
   @State private var isDone = false
@@ -21,7 +22,7 @@ struct HabitDetailView: View {
 
   var body: some View {
     ZStack {
-      ProudlyTheme.backgroundGradient.ignoresSafeArea()
+      theme.activeTheme.backgroundGradient.ignoresSafeArea()
 
       ScrollView {
         VStack(spacing: 24) {
@@ -37,6 +38,7 @@ struct HabitDetailView: View {
     }
     .navigationTitle(habit.name)
     .navigationBarTitleDisplayMode(.inline)
+    .tint(habit.color)
     .onAppear { isDone = habit.isCompletedToday }
     .toolbar {
       ToolbarItem(placement: .topBarTrailing) {
@@ -46,6 +48,7 @@ struct HabitDetailView: View {
         .tint(habit.color)
       }
     }
+    .toolbarVisibility(.hidden, for: .tabBar)
     .sheet(isPresented: $isEditPresented) {
       HabitFormView(habit: habit) { updatedHabit in
         habit = updatedHabit
@@ -104,7 +107,9 @@ struct HabitDetailView: View {
           VStack(spacing: 6) {
             ZStack {
               Circle()
-                .fill(habit.completedDates.contains(dateKey) ? habit.color : Color.gray.opacity(0.15))
+                .fill(
+                  habit.completedDates.contains(dateKey) ? habit.color : Color.gray.opacity(0.15)
+                )
                 .frame(width: 36, height: 36)
               if habit.completedDates.contains(dateKey) {
                 Image(systemName: "checkmark")
@@ -121,7 +126,7 @@ struct HabitDetailView: View {
       }
     }
     .padding(20)
-    .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 22))
+    .proudlyGlass()
   }
 
   private var monthlyHistoryLockedCard: some View {
@@ -131,10 +136,10 @@ struct HabitDetailView: View {
       HStack(spacing: 14) {
         ZStack {
           Circle()
-            .fill(ProudlyTheme.purple.opacity(0.15))
+            .fill(habit.color.opacity(0.15))
             .frame(width: 42, height: 42)
           Image(systemName: "calendar")
-            .foregroundStyle(ProudlyTheme.purple)
+            .foregroundStyle(habit.color)
         }
         VStack(alignment: .leading, spacing: 3) {
           Text("Monthly History")
@@ -147,10 +152,10 @@ struct HabitDetailView: View {
         Spacer()
         Image(systemName: "lock.fill")
           .font(.system(size: 13))
-          .foregroundStyle(ProudlyTheme.purple)
+          .foregroundStyle(habit.color)
       }
       .padding(16)
-      .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 18))
+      .proudlyGlass(cornerRadius: 18)
     }
     .buttonStyle(.plain)
   }
@@ -221,7 +226,7 @@ struct StatCard: View {
     }
     .frame(maxWidth: .infinity)
     .padding(.vertical, 22)
-    .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 20))
+    .proudlyGlass(cornerRadius: 20)
   }
 }
 
@@ -229,4 +234,5 @@ struct StatCard: View {
   NavigationStack {
     HabitDetailView(habit: Habit.samples[1])
   }
+  .environment(ThemeViewModel())
 }

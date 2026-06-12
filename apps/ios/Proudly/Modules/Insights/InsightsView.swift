@@ -9,12 +9,13 @@ import Charts
 import SwiftUI
 
 struct InsightsView: View {
+  @Environment(ThemeViewModel.self) private var theme
   @State private var viewModel = InsightsViewModel()
 
   var body: some View {
     NavigationStack {
       ZStack {
-        ProudlyTheme.backgroundGradient.ignoresSafeArea()
+        theme.activeTheme.backgroundGradient.ignoresSafeArea()
 
         ScrollView {
           VStack(spacing: 20) {
@@ -46,7 +47,7 @@ struct InsightsView: View {
       Spacer()
     }
     .padding(18)
-    .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 22))
+    .proudlyGlass()
   }
 
   private var weeklyChartCard: some View {
@@ -59,13 +60,7 @@ struct InsightsView: View {
           x: .value("Day", item.day),
           y: .value("Habits", item.count)
         )
-        .foregroundStyle(
-          LinearGradient(
-            colors: [ProudlyTheme.purple, ProudlyTheme.pink],
-            startPoint: .bottom,
-            endPoint: .top
-          )
-        )
+        .foregroundStyle(theme.activeTheme.accentGradient)
         .cornerRadius(8)
       }
       .frame(height: 160)
@@ -83,7 +78,7 @@ struct InsightsView: View {
       }
     }
     .padding(20)
-    .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 22))
+    .proudlyGlass()
   }
 
   private var statsGrid: some View {
@@ -142,10 +137,11 @@ struct InsightStatCard: View {
     .frame(maxWidth: .infinity, alignment: .leading)
     .padding(16)
     .frame(height: 120)
-    .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 20))
+    .proudlyGlass(cornerRadius: 20)
   }
 }
 
 #Preview {
   InsightsView()
+    .environment(ThemeViewModel())
 }

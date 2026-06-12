@@ -8,13 +8,15 @@
 import SwiftUI
 
 struct ProfileView: View {
+  @Environment(ThemeViewModel.self) private var theme
   @State private var viewModel = ProfileViewModel()
   @State private var showPaywall = false
+  @State private var showThemeView = false
 
   var body: some View {
     NavigationStack {
       ZStack {
-        ProudlyTheme.backgroundGradient.ignoresSafeArea()
+        theme.activeTheme.backgroundGradient.ignoresSafeArea()
 
         ScrollView {
           VStack(spacing: 20) {
@@ -32,6 +34,12 @@ struct ProfileView: View {
       .sheet(isPresented: $showPaywall) {
         ProudlyPlusView()
       }
+      .sheet(isPresented: $showThemeView) {
+        ThemeView(onLockedThemeTapped: {
+          showThemeView = false
+          showPaywall = true
+        })
+      }
     }
   }
 
@@ -40,7 +48,7 @@ struct ProfileView: View {
       HStack(spacing: 16) {
         ZStack {
           Circle()
-            .fill(ProudlyTheme.purplePinkGradient)
+            .fill(theme.activeTheme.accentGradient)
             .frame(width: 60, height: 60)
           Text("A")
             .font(.system(size: 26, weight: .bold))
@@ -79,14 +87,14 @@ struct ProfileView: View {
             .foregroundStyle(.white)
             .padding(.horizontal, 16)
             .padding(.vertical, 8)
-            .background(ProudlyTheme.purplePinkGradient)
+            .background(theme.activeTheme.accentGradient)
             .clipShape(Capsule())
         }
         .buttonStyle(.plain)
       }
     }
     .padding(20)
-    .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 22))
+    .proudlyGlass()
   }
 
   private var settingsSection: some View {
@@ -106,21 +114,33 @@ struct ProfileView: View {
         Toggle("", isOn: $viewModel.remindersEnabled).labelsHidden()
       }
 
-      Divider().padding(.leading, 56).opacity(0.4)
+      if FeatureFlags.showThemeSettings {
+        Divider().padding(.leading, 56).opacity(0.4)
 
-      Button {
-        showPaywall = true
-      } label: {
-        ProfileRow(icon: "paintbrush.fill", label: "Theme", color: ProudlyTheme.purple) {
-          HStack(spacing: 6) {
-            Text(viewModel.selectedTheme)
-              .font(.subheadline)
-              .foregroundStyle(.secondary)
-            PlusBadge()
+        Button {
+          if viewModel.isPlusUser {
+            showThemeView = true
+          } else {
+            showPaywall = true
+          }
+        } label: {
+          ProfileRow(icon: "paintbrush.fill", label: "Theme", color: ProudlyTheme.purple) {
+            HStack(spacing: 6) {
+              Text(viewModel.selectedTheme)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+              if viewModel.isPlusUser {
+                Image(systemName: "chevron.right")
+                  .font(.caption2)
+                  .foregroundStyle(.tertiary)
+              } else {
+                PlusBadge()
+              }
+            }
           }
         }
+        .buttonStyle(.plain)
       }
-      .buttonStyle(.plain)
 
       Divider().padding(.leading, 56).opacity(0.4)
 
@@ -133,7 +153,7 @@ struct ProfileView: View {
       }
       .buttonStyle(.plain)
     }
-    .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 22))
+    .proudlyGlass()
   }
 
   private var legalSection: some View {
@@ -150,11 +170,13 @@ struct ProfileView: View {
         Image(systemName: "chevron.right").font(.caption2).foregroundStyle(.tertiary)
       }
     }
-    .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 22))
+    .proudlyGlass()
   }
 }
 
-private struct PlusBadge: View {
+struct PlusBadge: View {
+  @Environment(ThemeViewModel.self) private var theme
+
   var body: some View {
     HStack(spacing: 4) {
       Image(systemName: "lock.fill")
@@ -165,7 +187,7 @@ private struct PlusBadge: View {
     .foregroundStyle(.white)
     .padding(.horizontal, 8)
     .padding(.vertical, 4)
-    .background(ProudlyTheme.purplePinkGradient)
+    .background(theme.activeTheme.accentGradient)
     .clipShape(Capsule())
   }
 }
@@ -190,10 +212,13 @@ struct ProfileRow<Trailing: View>: View {
       Spacer()
       trailing()
     }
+    .frame(maxWidth: .infinity, alignment: .leading)
     .padding(14)
+    .contentShape(Rectangle())
   }
 }
 
 #Preview {
   ProfileView()
+    .environment(ThemeViewModel())
 }

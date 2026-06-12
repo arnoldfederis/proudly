@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct TodayView: View {
+  @Environment(ThemeViewModel.self) private var theme
   @State private var viewModel = TodayViewModel()
   @State private var selectedHabit: Habit?
   @State private var isAddPresented: Bool = false
@@ -19,7 +20,7 @@ struct TodayView: View {
   var body: some View {
     NavigationStack {
       ZStack {
-        ProudlyTheme.backgroundGradient.ignoresSafeArea()
+        theme.activeTheme.backgroundGradient.ignoresSafeArea()
 
         ScrollView {
           VStack(spacing: 20) {
@@ -44,7 +45,7 @@ struct TodayView: View {
           Button(action: presentAddHabit) {
             Image(systemName: "plus")
           }
-          .tint(ProudlyTheme.purple)
+          .tint(theme.activeTheme.accentColor)
         }
       }
       .navigationDestination(item: $selectedHabit) { habit in
@@ -66,8 +67,17 @@ struct TodayView: View {
 
   private var progressCard: some View {
     HStack(spacing: 16) {
+      ZStack {
+        Circle()
+          .fill(Color.clear)
+          .frame(width: 56, height: 56)
+
+        Text("😊")
+          .font(.system(size: 52, weight: .bold))
+      }
+
       VStack(alignment: .leading, spacing: 6) {
-        Text("You're doing great!")
+        Text("You're doing great! 👏")
           .font(.headline)
         Text("\(viewModel.completedCount) of \(viewModel.totalCount) habits completed")
           .font(.subheadline)
@@ -75,29 +85,29 @@ struct TodayView: View {
 
         ProgressView(value: viewModel.progressRatio)
           .progressViewStyle(.linear)
-          .tint(ProudlyTheme.purple)
+          .tint(theme.activeTheme.accentColor)
           .frame(maxWidth: .infinity)
       }
 
-      ZStack {
-        Circle()
-          .stroke(Color.gray.opacity(0.2), lineWidth: 4)
-          .frame(width: 56, height: 56)
-        Circle()
-          .trim(from: 0, to: viewModel.progressRatio)
-          .stroke(
-            ProudlyTheme.purplePinkGradient,
-            style: StrokeStyle(lineWidth: 4, lineCap: .round)
-          )
-          .frame(width: 56, height: 56)
-          .rotationEffect(.degrees(-90))
-          .animation(.easeInOut(duration: 0.4), value: viewModel.progressRatio)
-        Text("\(Int(viewModel.progressRatio * 100))%")
-          .font(.system(size: 12, weight: .bold))
-      }
+      //      ZStack {
+      //        Circle()
+      //          .stroke(Color.gray.opacity(0.2), lineWidth: 4)
+      //          .frame(width: 56, height: 56)
+      //        Circle()
+      //          .trim(from: 0, to: viewModel.progressRatio)
+      //          .stroke(
+      //            theme.activeTheme.accentGradient,
+      //            style: StrokeStyle(lineWidth: 4, lineCap: .round)
+      //          )
+      //          .frame(width: 56, height: 56)
+      //          .rotationEffect(.degrees(-90))
+      //          .animation(.easeInOut(duration: 0.4), value: viewModel.progressRatio)
+      //        Text("\(Int(viewModel.progressRatio * 100))%")
+      //          .font(.system(size: 12, weight: .bold))
+      //      }
     }
     .padding(20)
-    .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 22))
+    .proudlyGlass()
   }
 
   private var habitsSection: some View {
@@ -133,7 +143,7 @@ struct TodayView: View {
       Spacer()
     }
     .padding(18)
-    .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 18))
+    .proudlyGlass(cornerRadius: 18)
   }
 
   private func presentAddHabit() {
@@ -202,14 +212,17 @@ struct HabitRowView: View {
         }
         .buttonStyle(.plain)
       }
+      .frame(maxWidth: .infinity)
+      .padding(.horizontal, 16)
+      .padding(.vertical, 13)
+      .contentShape(Rectangle())
     }
     .buttonStyle(.plain)
-    .padding(.horizontal, 16)
-    .padding(.vertical, 13)
-    .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 18))
+    .proudlyGlass(cornerRadius: 18)
   }
 }
 
 #Preview {
   TodayView()
+    .environment(ThemeViewModel())
 }

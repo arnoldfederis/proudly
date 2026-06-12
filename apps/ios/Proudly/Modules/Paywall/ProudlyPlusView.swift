@@ -9,6 +9,7 @@ import SwiftUI
 
 struct ProudlyPlusView: View {
   @Environment(\.dismiss) private var dismiss
+  @Environment(ThemeViewModel.self) private var theme
 
   private let benefits: [(icon: String, text: String, color: Color)] = [
     ("infinity", "Unlimited habits", ProudlyTheme.purple),
@@ -21,23 +22,31 @@ struct ProudlyPlusView: View {
   ]
 
   var body: some View {
-    ZStack {
-      ProudlyTheme.backgroundGradient.ignoresSafeArea()
+    NavigationStack {
+      ZStack {
+        theme.activeTheme.backgroundGradient.ignoresSafeArea()
 
-      VStack(spacing: 0) {
-        closeButton
-
-        ScrollView {
-          VStack(spacing: 28) {
-            heroSection
-            benefitsSection
-            ctaSection
+        VStack(spacing: 0) {
+          ScrollView {
+            VStack(spacing: 28) {
+              heroSection
+              benefitsSection
+              ctaSection
+            }
+            .padding(.horizontal, 24)
+            .padding(.bottom, 40)
           }
-          .padding(.horizontal, 24)
-          .padding(.bottom, 40)
+        }
+      }
+      .navigationTitle("Proudly Plus")
+      .navigationBarTitleDisplayMode(.inline)
+      .toolbar {
+        ToolbarItem(placement: .topBarLeading) {
+          Button("Close") { dismiss() }
         }
       }
     }
+    .preferredColorScheme(theme.activeTheme == .midnightCalm ? .dark : nil)
   }
 
   private var closeButton: some View {
@@ -100,7 +109,7 @@ struct ProudlyPlusView: View {
             .foregroundStyle(benefit.color)
         }
         .padding(14)
-        .glassEffect(.regular, in: RoundedRectangle(cornerRadius: 16))
+        .proudlyGlass(cornerRadius: 16)
       }
     }
   }
@@ -115,7 +124,7 @@ struct ProudlyPlusView: View {
           .foregroundStyle(.white)
           .frame(maxWidth: .infinity)
           .padding(.vertical, 17)
-          .background(ProudlyTheme.purplePinkGradient)
+          .background(theme.activeTheme.accentGradient)
           .clipShape(RoundedRectangle(cornerRadius: 20))
       }
       .buttonStyle(.plain)
@@ -138,4 +147,5 @@ struct ProudlyPlusView: View {
 
 #Preview {
   ProudlyPlusView()
+    .environment(ThemeViewModel())
 }

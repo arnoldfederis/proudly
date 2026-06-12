@@ -16,6 +16,7 @@ private enum HomeTab: Hashable {
 }
 
 struct HomeView: View {
+  @Environment(ThemeViewModel.self) private var theme
   @State private var selectedTab: HomeTab = .today
   @State private var isPlus: Bool = false
 
@@ -36,7 +37,7 @@ struct HomeView: View {
         ProfileView()
       }
     }
-    .tint(ProudlyTheme.purple)
+    .tint(theme.activeTheme.accentColor)
     .onChange(of: selectedTab) { oldValue, newValue in
       Haptics.selection()
     }
@@ -45,4 +46,5 @@ struct HomeView: View {
 
 #Preview {
   HomeView()
+    .environment(ThemeViewModel())
 }

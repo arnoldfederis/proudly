@@ -26,7 +26,6 @@ struct FloatingActionButton: View {
         .symbolEffect(.bounce.byLayer, value: symbolTrigger)
         .frame(width: 52, height: 52)
         .background(color, in: Circle())
-        .shadow(color: color.opacity(0.28), radius: 12, y: 6)
     }
     .buttonStyle(FloatingActionButtonStyle())
   }
