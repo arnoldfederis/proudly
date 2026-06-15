@@ -9,13 +9,13 @@ import SwiftUI
 
 struct ProudMomentsView: View {
   @Environment(ThemeViewModel.self) private var theme
-  private let moments = ProudMoment.samples
+  @Environment(HabitRepository.self) private var repository
 
   private var grouped: [(String, [ProudMoment])] {
     var groups: [String: [ProudMoment]] = [:]
     var keyOrder: [String] = []
 
-    for moment in moments {
+    for moment in repository.proudMoments {
       let key = sectionLabel(for: moment.date)
       if groups[key] == nil {
         keyOrder.append(key)
@@ -31,30 +31,50 @@ struct ProudMomentsView: View {
     ZStack {
       theme.activeTheme.backgroundGradient.ignoresSafeArea()
 
-      ScrollView {
-        VStack(spacing: 0) {
-          ForEach(grouped, id: \.0) { section, items in
-            VStack(alignment: .leading, spacing: 10) {
-              Text(section)
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(.secondary)
-                .padding(.horizontal, 20)
-                .padding(.top, 24)
-                .padding(.bottom, 2)
-
-              ForEach(items) { moment in
-                ProudMomentCard(moment: moment)
+      if repository.proudMoments.isEmpty {
+        emptyState
+      } else {
+        ScrollView {
+          LazyVStack(spacing: 0) {
+            ForEach(grouped, id: \.0) { section, items in
+              LazyVStack(alignment: .leading, spacing: 10) {
+                Text(section)
+                  .font(.system(size: 13, weight: .semibold))
+                  .foregroundStyle(.secondary)
                   .padding(.horizontal, 20)
+                  .padding(.top, 24)
+                  .padding(.bottom, 2)
+
+                ForEach(items) { moment in
+                  ProudMomentCard(moment: moment)
+                    .padding(.horizontal, 20)
+                }
               }
             }
+            Spacer(minLength: 80)
           }
-          Spacer(minLength: 80)
         }
       }
     }
     .navigationTitle("Proud Moments")
     .navigationBarTitleDisplayMode(.large)
     .tint(theme.activeTheme.accentColor)
+    .toolbarVisibility(.hidden, for: .tabBar)
+  }
+
+  private var emptyState: some View {
+    VStack(spacing: 12) {
+      Image(systemName: "star.fill")
+        .font(.system(size: 40))
+        .foregroundStyle(theme.activeTheme.accentColor)
+      Text("No moments yet")
+        .font(.headline)
+      Text("Complete a habit to create your first proud moment.")
+        .font(.subheadline)
+        .foregroundStyle(.secondary)
+        .multilineTextAlignment(.center)
+        .padding(.horizontal, 40)
+    }
   }
 
   private func sectionLabel(for date: Date) -> String {
@@ -72,14 +92,7 @@ struct ProudMomentCard: View {
 
   var body: some View {
     HStack(spacing: 14) {
-      ZStack {
-        Circle()
-          .fill(ProudlyTheme.purple.opacity(0.15))
-          .frame(width: 46, height: 46)
-        Image(systemName: moment.icon)
-          .font(.system(size: 18))
-          .foregroundStyle(ProudlyTheme.purple)
-      }
+      HabitIconView(icon: moment.icon, color: moment.color, fontSize: 18, circleSize: 46)
 
       VStack(alignment: .leading, spacing: 4) {
         Text(moment.habitName)
@@ -92,7 +105,7 @@ struct ProudMomentCard: View {
           Image(systemName: "flame.fill")
             .font(.caption2)
             .foregroundStyle(ProudlyTheme.pink)
-          Text("\(moment.streak)-day streak")
+          Text(moment.streak.proudlyStreakLabel)
             .font(.caption2)
             .foregroundStyle(.secondary)
         }
@@ -122,4 +135,5 @@ struct ProudMomentCard: View {
     ProudMomentsView()
   }
   .environment(ThemeViewModel())
+  .environment(HabitRepository.preview)
 }

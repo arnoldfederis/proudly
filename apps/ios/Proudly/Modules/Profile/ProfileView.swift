@@ -5,13 +5,18 @@
 //  Created by Arnolfo Federis on 6/9/26.
 //
 
+import RevenueCatUI
 import SwiftUI
 
 struct ProfileView: View {
   @Environment(ThemeViewModel.self) private var theme
+  @Environment(SubscriptionStore.self) private var subscriptionStore
+  @Environment(HabitRepository.self) private var repository
   @State private var viewModel = ProfileViewModel()
   @State private var showPaywall = false
   @State private var showThemeView = false
+  @State private var showCustomerCenter = false
+  @State private var navigateToProudMoments = false
 
   var body: some View {
     NavigationStack {
@@ -19,7 +24,7 @@ struct ProfileView: View {
         theme.activeTheme.backgroundGradient.ignoresSafeArea()
 
         ScrollView {
-          VStack(spacing: 20) {
+          LazyVStack(spacing: 20) {
             profileCard
             settingsSection
             legalSection
@@ -40,6 +45,10 @@ struct ProfileView: View {
           showPaywall = true
         })
       }
+      .navigationDestination(isPresented: $navigateToProudMoments) {
+        ProudMomentsView()
+      }
+      .presentCustomerCenter(isPresented: $showCustomerCenter)
     }
   }
 
@@ -58,7 +67,7 @@ struct ProfileView: View {
         VStack(alignment: .leading, spacing: 4) {
           Text("Arnolfo")
             .font(.system(size: 18, weight: .bold))
-          Text("3 habits · 12-day streak")
+          Text(profileSummary)
             .font(.caption)
             .foregroundStyle(.secondary)
         }
@@ -70,27 +79,46 @@ struct ProfileView: View {
 
       HStack {
         VStack(alignment: .leading, spacing: 2) {
-          Text("Proudly Free")
+          Text(subscriptionStore.hasProudlyPlus ? "Proudly Plus" : "Proudly Free")
             .font(.system(size: 14, weight: .semibold))
-          Text("3 habits included")
-            .font(.caption)
-            .foregroundStyle(.secondary)
+          Text(
+            subscriptionStore.hasProudlyPlus
+              ? "All premium features unlocked"
+              : "3 habits included"
+          )
+          .font(.caption)
+          .foregroundStyle(.secondary)
         }
 
         Spacer()
 
-        Button {
-          showPaywall = true
-        } label: {
-          Text("Upgrade")
-            .font(.system(size: 13, weight: .bold))
-            .foregroundStyle(.white)
-            .padding(.horizontal, 16)
-            .padding(.vertical, 8)
-            .background(theme.activeTheme.accentGradient)
-            .clipShape(Capsule())
+        if subscriptionStore.hasProudlyPlus {
+          Button {
+            showCustomerCenter = true
+          } label: {
+            Text("Manage")
+              .font(.system(size: 13, weight: .bold))
+              .foregroundStyle(theme.activeTheme.accentColor)
+              .padding(.horizontal, 16)
+              .padding(.vertical, 8)
+              .background(theme.activeTheme.accentColor.opacity(0.12))
+              .clipShape(Capsule())
+          }
+          .buttonStyle(.plain)
+        } else {
+          Button {
+            showPaywall = true
+          } label: {
+            Text("Upgrade")
+              .font(.system(size: 13, weight: .bold))
+              .foregroundStyle(.white)
+              .padding(.horizontal, 16)
+              .padding(.vertical, 8)
+              .background(theme.activeTheme.accentGradient)
+              .clipShape(Capsule())
+          }
+          .buttonStyle(.plain)
         }
-        .buttonStyle(.plain)
       }
     }
     .padding(20)
@@ -100,60 +128,115 @@ struct ProfileView: View {
   private var settingsSection: some View {
     VStack(spacing: 0) {
       Button {
-        showPaywall = true
+        if !subscriptionStore.hasProudlyPlus {
+          showPaywall = true
+        }
+
+        viewModel.iCloudSyncEnabled.toggle()
       } label: {
         ProfileRow(icon: "icloud.fill", label: "iCloud Sync", color: ProudlyTheme.blue) {
-          PlusBadge()
+          if subscriptionStore.hasProudlyPlus {
+            Toggle("", isOn: $viewModel.iCloudSyncEnabled).labelsHidden()
+          } else {
+            PlusBadge()
+          }
         }
       }
       .buttonStyle(.plain)
 
       Divider().padding(.leading, 56).opacity(0.4)
 
-      ProfileRow(icon: "bell.fill", label: "Reminders", color: ProudlyTheme.pink) {
-        Toggle("", isOn: $viewModel.remindersEnabled).labelsHidden()
-      }
-
-      if FeatureFlags.showThemeSettings {
-        Divider().padding(.leading, 56).opacity(0.4)
-
-        Button {
-          if viewModel.isPlusUser {
-            showThemeView = true
-          } else {
-            showPaywall = true
-          }
-        } label: {
-          ProfileRow(icon: "paintbrush.fill", label: "Theme", color: ProudlyTheme.purple) {
-            HStack(spacing: 6) {
-              Text(viewModel.selectedTheme)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-              if viewModel.isPlusUser {
-                Image(systemName: "chevron.right")
-                  .font(.caption2)
-                  .foregroundStyle(.tertiary)
-              } else {
-                PlusBadge()
-              }
-            }
-          }
+      Button {
+        viewModel.remindersEnabled.toggle()
+      } label: {
+        ProfileRow(icon: "bell.fill", label: "Reminders", color: ProudlyTheme.pink) {
+          Toggle("", isOn: $viewModel.remindersEnabled).labelsHidden()
         }
-        .buttonStyle(.plain)
       }
+      .buttonStyle(.plain)
 
       Divider().padding(.leading, 56).opacity(0.4)
 
       Button {
-        showPaywall = true
+        if subscriptionStore.hasProudlyPlus {
+          showThemeView = true
+        } else {
+          showPaywall = true
+        }
+      } label: {
+        ProfileRow(icon: "paintbrush.fill", label: "Theme", color: ProudlyTheme.purple) {
+          HStack(spacing: 6) {
+            if subscriptionStore.hasProudlyPlus {
+              Text(theme.selectedTheme.displayName)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+
+              Image(systemName: "chevron.right")
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
+            } else {
+              PlusBadge()
+            }
+          }
+        }
+      }
+      .buttonStyle(.plain)
+
+      Divider().padding(.leading, 56).opacity(0.4)
+
+      Button {
+        if subscriptionStore.hasProudlyPlus {
+          showCustomerCenter = true
+        } else {
+          showPaywall = true
+        }
+      } label: {
+        ProfileRow(
+          icon: "creditcard.fill",
+          label: subscriptionStore.hasProudlyPlus ? "Manage Subscription" : "Subscription",
+          color: theme.activeTheme.accentColor
+        ) {
+          if subscriptionStore.hasProudlyPlus {
+            Image(systemName: "chevron.right")
+              .font(.caption2)
+              .foregroundStyle(.tertiary)
+          } else {
+            PlusBadge()
+          }
+        }
+      }
+      .buttonStyle(.plain)
+
+      Divider().padding(.leading, 56).opacity(0.4)
+
+      Button {
+        if subscriptionStore.hasProudlyPlus {
+          navigateToProudMoments = true
+        } else {
+          showPaywall = true
+        }
       } label: {
         ProfileRow(icon: "heart.fill", label: "Proud Moments", color: ProudlyTheme.mint) {
-          PlusBadge()
+          if subscriptionStore.hasProudlyPlus {
+            Image(systemName: "chevron.right")
+              .font(.caption2)
+              .foregroundStyle(.tertiary)
+          } else {
+            PlusBadge()
+          }
         }
       }
       .buttonStyle(.plain)
     }
     .proudlyGlass()
+  }
+
+  private var profileSummary: String {
+    let habitCount = repository.activeHabits.count
+    let longestStreak = repository.activeHabits.map(\.streak).max() ?? 0
+    let habitLabel = habitCount == 1 ? "habit" : "habits"
+
+    return "\(habitCount) \(habitLabel) · \(longestStreak.proudlyStreakLabel)"
   }
 
   private var legalSection: some View {
@@ -221,4 +304,6 @@ struct ProfileRow<Trailing: View>: View {
 #Preview {
   ProfileView()
     .environment(ThemeViewModel())
+    .environment(SubscriptionStore())
+    .environment(HabitRepository.preview)
 }

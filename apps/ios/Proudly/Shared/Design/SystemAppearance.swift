@@ -2,7 +2,7 @@
 //  SystemAppearance.swift
 //  Proudly
 //
-//  Created by Codex on 6/12/26.
+//  Created by Arnolfo Federis on 6/12/26.
 //
 
 import SwiftUI

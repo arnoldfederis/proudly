@@ -9,13 +9,20 @@ import SwiftUI
 
 struct TodayView: View {
   @Environment(ThemeViewModel.self) private var theme
-  @State private var viewModel = TodayViewModel()
+  @Environment(SubscriptionStore.self) private var subscriptionStore
+  @Environment(HabitRepository.self) private var repository
   @State private var selectedHabit: Habit?
   @State private var isAddPresented: Bool = false
   @State private var isPaywallPresented: Bool = false
 
-  private let isPlusUser = false
   private let freeHabitLimit = 3
+
+  private var completedCount: Int { repository.activeHabits.filter(\.isCompletedToday).count }
+  private var totalCount: Int { repository.activeHabits.count }
+  private var progressRatio: Double {
+    guard totalCount > 0 else { return 0 }
+    return Double(completedCount) / Double(totalCount)
+  }
 
   var body: some View {
     NavigationStack {
@@ -23,7 +30,7 @@ struct TodayView: View {
         theme.activeTheme.backgroundGradient.ignoresSafeArea()
 
         ScrollView {
-          VStack(spacing: 20) {
+          LazyVStack(spacing: 20) {
             VStack(alignment: .leading) {
               Text("What will make you proud today?")
                 .font(.subheadline)
@@ -50,12 +57,12 @@ struct TodayView: View {
       }
       .navigationDestination(item: $selectedHabit) { habit in
         HabitDetailView(habit: habit) { updatedHabit in
-          viewModel.updateHabit(updatedHabit)
+          repository.updateHabit(updatedHabit)
         }
       }
       .sheet(isPresented: $isAddPresented) {
         HabitFormView { habit in
-          viewModel.addHabit(habit)
+          repository.addHabit(habit)
           isAddPresented = false
         }
       }
@@ -79,43 +86,29 @@ struct TodayView: View {
       VStack(alignment: .leading, spacing: 6) {
         Text("You're doing great! 👏")
           .font(.headline)
-        Text("\(viewModel.completedCount) of \(viewModel.totalCount) habits completed")
+        Text("\(completedCount) of \(totalCount) habits completed")
           .font(.subheadline)
           .foregroundStyle(.secondary)
 
-        ProgressView(value: viewModel.progressRatio)
+        ProgressView(value: progressRatio)
           .progressViewStyle(.linear)
           .tint(theme.activeTheme.accentColor)
           .frame(maxWidth: .infinity)
       }
-
-      //      ZStack {
-      //        Circle()
-      //          .stroke(Color.gray.opacity(0.2), lineWidth: 4)
-      //          .frame(width: 56, height: 56)
-      //        Circle()
-      //          .trim(from: 0, to: viewModel.progressRatio)
-      //          .stroke(
-      //            theme.activeTheme.accentGradient,
-      //            style: StrokeStyle(lineWidth: 4, lineCap: .round)
-      //          )
-      //          .frame(width: 56, height: 56)
-      //          .rotationEffect(.degrees(-90))
-      //          .animation(.easeInOut(duration: 0.4), value: viewModel.progressRatio)
-      //        Text("\(Int(viewModel.progressRatio * 100))%")
-      //          .font(.system(size: 12, weight: .bold))
-      //      }
     }
     .padding(20)
     .proudlyGlass()
   }
 
   private var habitsSection: some View {
-    VStack(spacing: 10) {
-      ForEach(viewModel.habits) { habit in
+    LazyVStack(spacing: 10) {
+      ForEach(repository.activeHabits) { habit in
         HabitRowView(
           habit: habit,
-          onToggle: { viewModel.toggleCompletion(for: habit) },
+          onToggle: {
+            if !habit.isCompletedToday { Haptics.notification(.success) }
+            repository.toggleCompletion(for: habit)
+          },
           onNavigate: { selectedHabit = habit }
         )
       }
@@ -149,7 +142,7 @@ struct TodayView: View {
   private func presentAddHabit() {
     Haptics.selection()
 
-    if !isPlusUser && viewModel.habits.count >= freeHabitLimit {
+    if !subscriptionStore.hasProudlyPlus && repository.activeHabits.count >= freeHabitLimit {
       isPaywallPresented = true
     } else {
       isAddPresented = true
@@ -165,14 +158,13 @@ struct HabitRowView: View {
   var body: some View {
     Button(action: onNavigate) {
       HStack(spacing: 14) {
-        ZStack {
-          Circle()
-            .fill(habit.color.opacity(0.18))
-            .frame(width: 46, height: 46)
-          Image(systemName: habit.icon)
-            .font(.system(size: 19))
-            .foregroundStyle(habit.color)
-        }
+        HabitIconView(
+          icon: habit.icon,
+          color: habit.color,
+          fontSize: 19,
+          circleSize: 46,
+          backgroundOpacity: 0.18
+        )
 
         VStack(alignment: .leading, spacing: 3) {
           Text(habit.name)
@@ -182,7 +174,7 @@ struct HabitRowView: View {
             Image(systemName: "flame.fill")
               .font(.caption2)
               .foregroundStyle(ProudlyTheme.pink)
-            Text("\(habit.streak) day streak")
+            Text(habit.streakLabel)
               .font(.caption)
               .foregroundStyle(.secondary)
           }
@@ -225,4 +217,6 @@ struct HabitRowView: View {
 #Preview {
   TodayView()
     .environment(ThemeViewModel())
+    .environment(SubscriptionStore())
+    .environment(HabitRepository.preview)
 }

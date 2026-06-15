@@ -9,6 +9,8 @@ import SwiftUI
 
 struct HabitDetailView: View {
   @Environment(ThemeViewModel.self) private var theme
+  @Environment(HabitRepository.self) private var repository
+  @Environment(SubscriptionStore.self) private var subscriptionStore
   @State private var habit: Habit
   let onSave: (Habit) -> Void
   @State private var isDone = false
@@ -25,11 +27,11 @@ struct HabitDetailView: View {
       theme.activeTheme.backgroundGradient.ignoresSafeArea()
 
       ScrollView {
-        VStack(spacing: 24) {
+        LazyVStack(spacing: 24) {
           iconBubble
           statsRow
           sevenDayPreviewCard
-          monthlyHistoryLockedCard
+          monthlyHistoryCard
           markDoneButton
           Spacer(minLength: 40)
         }
@@ -40,6 +42,12 @@ struct HabitDetailView: View {
     .navigationBarTitleDisplayMode(.inline)
     .tint(habit.color)
     .onAppear { isDone = habit.isCompletedToday }
+    .onChange(of: repository.activeHabits) { _, updated in
+      if let fresh = updated.first(where: { $0.id == habit.id }) {
+        habit = fresh
+        isDone = fresh.isCompletedToday
+      }
+    }
     .toolbar {
       ToolbarItem(placement: .topBarTrailing) {
         Button(action: presentEditHabit) {
@@ -63,15 +71,8 @@ struct HabitDetailView: View {
 
   private var iconBubble: some View {
     VStack(spacing: 10) {
-      ZStack {
-        Circle()
-          .fill(habit.color.opacity(0.15))
-          .frame(width: 96, height: 96)
-        Image(systemName: habit.icon)
-          .font(.system(size: 42))
-          .foregroundStyle(habit.color)
-      }
-      .padding(.top, 20)
+      HabitIconView(icon: habit.icon, color: habit.color, fontSize: 42, circleSize: 96)
+        .padding(.top, 20)
 
       Text(habit.note)
         .font(.subheadline)
@@ -85,13 +86,13 @@ struct HabitDetailView: View {
       StatCard(
         label: "Current Streak",
         value: "\(habit.streak)",
-        unit: "days",
+        unit: habit.streak.proudlyDayUnit,
         color: ProudlyTheme.pink
       )
       StatCard(
         label: "Best Streak",
         value: "\(habit.bestStreak)",
-        unit: "days",
+        unit: habit.bestStreak.proudlyDayUnit,
         color: ProudlyTheme.purple
       )
     }
@@ -129,10 +130,9 @@ struct HabitDetailView: View {
     .proudlyGlass()
   }
 
-  private var monthlyHistoryLockedCard: some View {
-    Button {
-      isPaywallPresented = true
-    } label: {
+  @ViewBuilder
+  private var monthlyHistoryCard: some View {
+    if subscriptionStore.hasProudlyPlus {
       HStack(spacing: 14) {
         ZStack {
           Circle()
@@ -145,27 +145,63 @@ struct HabitDetailView: View {
           Text("Monthly History")
             .font(.system(size: 15, weight: .semibold))
             .foregroundStyle(.primary)
-          Text("Unlock full habit history with Proudly Plus.")
+          Text("Full calendar view coming soon.")
             .font(.caption)
             .foregroundStyle(.secondary)
         }
         Spacer()
-        Image(systemName: "lock.fill")
+        Image(systemName: "chevron.right")
           .font(.system(size: 13))
-          .foregroundStyle(habit.color)
+          .foregroundStyle(.tertiary)
       }
       .padding(16)
       .proudlyGlass(cornerRadius: 18)
+    } else {
+      Button {
+        isPaywallPresented = true
+      } label: {
+        HStack(spacing: 14) {
+          ZStack {
+            Circle()
+              .fill(habit.color.opacity(0.15))
+              .frame(width: 42, height: 42)
+            Image(systemName: "calendar")
+              .foregroundStyle(habit.color)
+          }
+          VStack(alignment: .leading, spacing: 3) {
+            Text("Monthly History")
+              .font(.system(size: 15, weight: .semibold))
+              .foregroundStyle(.primary)
+            Text("Unlock full habit history with Proudly Plus.")
+              .font(.caption)
+              .foregroundStyle(.secondary)
+          }
+          Spacer()
+          Image(systemName: "lock.fill")
+            .font(.system(size: 13))
+            .foregroundStyle(habit.color)
+        }
+        .padding(16)
+        .proudlyGlass(cornerRadius: 18)
+      }
+      .buttonStyle(.plain)
     }
-    .buttonStyle(.plain)
   }
 
   private var markDoneButton: some View {
     Button {
+      let willBeDone = !isDone
+      let todayKey = HabitRepository.dateKey(for: .now)
       withAnimation(.spring(response: 0.4, dampingFraction: 0.65)) {
-        isDone.toggle()
-        Haptics.notification(isDone ? .success : .warning)
+        isDone = willBeDone
+        if willBeDone {
+          habit.completedDates.insert(todayKey)
+        } else {
+          habit.completedDates.remove(todayKey)
+        }
       }
+      Haptics.notification(willBeDone ? .success : .warning)
+      repository.toggleCompletion(for: habit)
     } label: {
       Label(
         isDone ? "Completed!" : "Mark as Done",
@@ -235,4 +271,6 @@ struct StatCard: View {
     HabitDetailView(habit: Habit.samples[1])
   }
   .environment(ThemeViewModel())
+  .environment(SubscriptionStore())
+  .environment(HabitRepository.preview)
 }

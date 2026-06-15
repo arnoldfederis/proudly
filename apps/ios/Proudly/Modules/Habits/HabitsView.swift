@@ -9,13 +9,18 @@ import SwiftUI
 
 struct HabitsView: View {
   @Environment(ThemeViewModel.self) private var theme
+  @Environment(SubscriptionStore.self) private var subscriptionStore
+  @Environment(HabitRepository.self) private var repository
   @State private var viewModel = HabitsViewModel()
   @State private var selectedHabit: Habit?
   @State private var isAddPresented: Bool = false
   @State private var isPaywallPresented: Bool = false
 
-  private let isPlusUser = false
   private let freeHabitLimit = 3
+
+  private var displayedHabits: [Habit] {
+    viewModel.filteredHabits(from: repository.activeHabits)
+  }
 
   var body: some View {
     NavigationStack {
@@ -25,15 +30,17 @@ struct HabitsView: View {
         GeometryReader { proxy in
           ScrollView {
             VStack(spacing: 16) {
-              freePlanBanner.padding(.top, 8)
+              if !subscriptionStore.hasProudlyPlus {
+                freePlanBanner.padding(.top, 8)
+              }
 
-              if viewModel.filteredHabits.isEmpty {
+              if displayedHabits.isEmpty {
                 emptyState
                   .frame(maxWidth: .infinity, maxHeight: .infinity)
                   .frame(minHeight: proxy.size.height - 70)
               } else {
                 LazyVStack(spacing: 10) {
-                  ForEach(viewModel.filteredHabits) { habit in
+                  ForEach(displayedHabits) { habit in
                     Button {
                       selectedHabit = habit
                     } label: {
@@ -64,12 +71,12 @@ struct HabitsView: View {
       }
       .navigationDestination(item: $selectedHabit) { habit in
         HabitDetailView(habit: habit) { updatedHabit in
-          viewModel.updateHabit(updatedHabit)
+          repository.updateHabit(updatedHabit)
         }
       }
       .sheet(isPresented: $isAddPresented) {
         HabitFormView { habit in
-          viewModel.addHabit(habit)
+          repository.addHabit(habit)
           isAddPresented = false
         }
       }
@@ -154,10 +161,36 @@ struct HabitsView: View {
   private func presentAddHabit() {
     Haptics.selection()
 
-    if !isPlusUser && viewModel.habits.count >= freeHabitLimit {
+    if !subscriptionStore.hasProudlyPlus && repository.activeHabits.count >= freeHabitLimit {
       isPaywallPresented = true
     } else {
       isAddPresented = true
+    }
+  }
+}
+
+struct HabitIconView: View {
+  let icon: String
+  let color: Color
+  let fontSize: CGFloat
+  let circleSize: CGFloat
+  var backgroundOpacity: Double = 0.15
+
+  private var isSFSymbol: Bool { icon.contains(".") }
+
+  var body: some View {
+    ZStack {
+      Circle()
+        .fill(color.opacity(backgroundOpacity))
+        .frame(width: circleSize, height: circleSize)
+      if isSFSymbol {
+        Image(systemName: icon)
+          .font(.system(size: fontSize))
+          .foregroundStyle(color)
+      } else {
+        Text(icon)
+          .font(.system(size: fontSize))
+      }
     }
   }
 }
@@ -167,14 +200,8 @@ struct HabitCardView: View {
 
   var body: some View {
     HStack(spacing: 14) {
-      ZStack {
-        Circle()
-          .fill(habit.color.opacity(0.18))
-          .frame(width: 52, height: 52)
-        Image(systemName: habit.icon)
-          .font(.system(size: 22))
-          .foregroundStyle(habit.color)
-      }
+      HabitIconView(
+        icon: habit.icon, color: habit.color, fontSize: 22, circleSize: 52, backgroundOpacity: 0.18)
 
       VStack(alignment: .leading, spacing: 4) {
         Text(habit.name)
@@ -196,7 +223,7 @@ struct HabitCardView: View {
           Text("\(habit.streak)")
             .font(.system(size: 16, weight: .bold))
         }
-        Text("days")
+        Text(habit.streak.proudlyDayUnit)
           .font(.caption2)
           .foregroundStyle(.secondary)
       }
@@ -211,4 +238,6 @@ struct HabitCardView: View {
 #Preview {
   HabitsView()
     .environment(ThemeViewModel())
+    .environment(SubscriptionStore())
+    .environment(HabitRepository.preview)
 }

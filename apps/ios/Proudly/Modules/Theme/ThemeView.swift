@@ -9,6 +9,7 @@ import SwiftUI
 
 struct ThemeView: View {
   @Environment(ThemeViewModel.self) private var theme
+  @Environment(SubscriptionStore.self) private var subscriptionStore
   @Environment(\.dismiss) private var dismiss
   var onLockedThemeTapped: () -> Void = {}
 
@@ -18,7 +19,7 @@ struct ThemeView: View {
         theme.activeTheme.backgroundGradient.ignoresSafeArea()
 
         ScrollView {
-          VStack(spacing: 20) {
+          LazyVStack(spacing: 20) {
             themeSection
             Spacer(minLength: 80)
           }
@@ -95,7 +96,9 @@ struct ThemeView: View {
             .foregroundStyle(theme.activeTheme.accentColor)
         }
       }
+      .frame(maxWidth: .infinity, alignment: .leading)
       .padding(14)
+      .contentShape(Rectangle())
     }
     .buttonStyle(.plain)
   }
@@ -104,4 +107,5 @@ struct ThemeView: View {
 #Preview {
   ThemeView()
     .environment(ThemeViewModel())
+    .environment(SubscriptionStore())
 }

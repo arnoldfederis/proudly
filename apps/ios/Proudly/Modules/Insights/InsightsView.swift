@@ -18,7 +18,7 @@ struct InsightsView: View {
         theme.activeTheme.backgroundGradient.ignoresSafeArea()
 
         ScrollView {
-          VStack(spacing: 20) {
+          LazyVStack(spacing: 20) {
             celebrationCard
             weeklyChartCard
             statsGrid

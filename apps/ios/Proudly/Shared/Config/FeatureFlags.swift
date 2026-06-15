@@ -12,5 +12,5 @@ enum FeatureFlags {
 
   /// Keeps the theme system active for internal previews and screens
   /// even when the settings row is hidden from users.
-  static let enableThemePreview: Bool = true
+  static let enableThemePreview: Bool = false
 }

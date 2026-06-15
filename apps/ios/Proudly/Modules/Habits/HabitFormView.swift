@@ -100,7 +100,7 @@ struct HabitFormView: View {
         theme.activeTheme.backgroundGradient.ignoresSafeArea()
 
         ScrollView {
-          VStack(alignment: .leading, spacing: 28) {
+          LazyVStack(alignment: .leading, spacing: 28) {
             iconSection
             nameField
             descriptionField
@@ -142,7 +142,7 @@ struct HabitFormView: View {
         .foregroundStyle(.secondary)
 
       ScrollView(.horizontal, showsIndicators: false) {
-        HStack(spacing: 10) {
+        LazyHStack(spacing: 10) {
           ForEach(icons.indices, id: \.self) { i in
             Button {
               selectedIconIndex = i
@@ -247,7 +247,7 @@ struct HabitFormView: View {
         .foregroundStyle(.secondary)
 
       ScrollView(.horizontal, showsIndicators: false) {
-        HStack(spacing: 12) {
+        LazyHStack(spacing: 12) {
           ForEach(colors.indices, id: \.self) { i in
             Button {
               selectedColorIndex = i
@@ -305,15 +305,17 @@ struct HabitFormView: View {
       HStack {
         ZStack {
           RoundedRectangle(cornerRadius: 8)
-            .fill(ProudlyTheme.purple.opacity(0.15))
+            .fill(effectiveColor.opacity(0.15))
             .frame(width: 34, height: 34)
           Image(systemName: "bell.fill")
             .font(.system(size: 14))
-            .foregroundStyle(ProudlyTheme.purple)
+            .foregroundStyle(effectiveColor)
         }
         Text("Daily Reminder").font(.system(size: 16, weight: .medium))
         Spacer()
-        Toggle("", isOn: $dailyReminderEnabled).labelsHidden()
+        Toggle("", isOn: $dailyReminderEnabled)
+          .labelsHidden()
+          .tint(effectiveColor)
       }
       .padding(16)
 

@@ -26,15 +26,28 @@ struct Habit: Identifiable {
   }
 }
 
+extension Int {
+  var proudlyDayUnit: String { self == 1 ? "day" : "days" }
+  var proudlyDayPhrase: String { "\(self) \(proudlyDayUnit)" }
+  var proudlyStreakLabel: String { "\(proudlyDayPhrase) streak" }
+}
+
 extension Habit: Hashable {
   func hash(into hasher: inout Hasher) { hasher.combine(id) }
-  // completedDates is included so SwiftUI detects the visual state change and re-renders rows
   static func == (lhs: Habit, rhs: Habit) -> Bool {
-    lhs.id == rhs.id && lhs.completedDates == rhs.completedDates
+    lhs.id == rhs.id
+      && lhs.name == rhs.name
+      && lhs.icon == rhs.icon
+      && lhs.note == rhs.note
+      && lhs.reminder == rhs.reminder
+      && lhs.completedDates == rhs.completedDates
   }
 }
 
 extension Habit {
+  var streakLabel: String { streak.proudlyStreakLabel }
+  var bestStreakLabel: String { bestStreak.proudlyStreakLabel }
+
   static let samples: [Habit] = [
     Habit(
       id: UUID(), name: "Drink water", icon: "drop.fill",

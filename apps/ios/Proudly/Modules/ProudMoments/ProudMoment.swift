@@ -6,11 +6,13 @@
 //
 
 import Foundation
+import SwiftUI
 
 struct ProudMoment: Identifiable {
-  let id: UUID
+  let id: String
   let habitName: String
   let icon: String
+  let color: Color
   let date: Date
   let message: String
   let streak: Int
@@ -19,29 +21,20 @@ struct ProudMoment: Identifiable {
 extension ProudMoment {
   static let samples: [ProudMoment] = [
     ProudMoment(
-      id: UUID(), habitName: "Walk 10 minutes", icon: "figure.walk",
-      date: .now,
+      id: "sample-1", habitName: "Walk 10 minutes", icon: "figure.walk",
+      color: ProudlyTheme.mint, date: .now,
       message: "12-day streak! You're unstoppable.", streak: 12
     ),
     ProudMoment(
-      id: UUID(), habitName: "Read 10 pages", icon: "book.fill",
-      date: .now,
+      id: "sample-2", habitName: "Read 10 pages", icon: "book.fill",
+      color: ProudlyTheme.purple, date: .now,
       message: "Finished a chapter. Mind fuel!", streak: 5
     ),
     ProudMoment(
-      id: UUID(), habitName: "Drink water", icon: "drop.fill",
+      id: "sample-3", habitName: "Drink water", icon: "drop.fill",
+      color: ProudlyTheme.blue,
       date: Calendar.current.date(byAdding: .day, value: -1, to: .now)!,
       message: "Stayed hydrated all day!", streak: 7
-    ),
-    ProudMoment(
-      id: UUID(), habitName: "Walk 10 minutes", icon: "figure.walk",
-      date: Calendar.current.date(from: DateComponents(year: 2026, month: 5, day: 20))!,
-      message: "11 days in a row. Keep going!", streak: 11
-    ),
-    ProudMoment(
-      id: UUID(), habitName: "Read 10 pages", icon: "book.fill",
-      date: Calendar.current.date(from: DateComponents(year: 2026, month: 5, day: 19))!,
-      message: "You make time for what matters.", streak: 4
     ),
   ]
 }

@@ -11,23 +11,30 @@ import SwiftUI
 @main
 struct ProudlyApp: App {
   @State private var themeViewModel = ThemeViewModel()
-  var sharedModelContainer: ModelContainer = {
-    let schema = Schema([
-      Item.self
-    ])
-    let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
+  @State private var subscriptionStore = SubscriptionStore()
+  @State private var habitRepository: HabitRepository
 
+  let sharedModelContainer: ModelContainer
+
+  init() {
+    let schema = Schema([PersistentHabit.self, PersistentHabitCompletion.self])
+    let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
+    let container: ModelContainer
     do {
-      return try ModelContainer(for: schema, configurations: [modelConfiguration])
+      container = try ModelContainer(for: schema, configurations: [config])
     } catch {
       fatalError("Could not create ModelContainer: \(error)")
     }
-  }()
+    sharedModelContainer = container
+    _habitRepository = State(initialValue: HabitRepository(modelContext: container.mainContext))
+  }
 
   var body: some Scene {
     WindowGroup {
       RootView()
         .environment(themeViewModel)
+        .environment(subscriptionStore)
+        .environment(habitRepository)
     }
     .modelContainer(sharedModelContainer)
   }
@@ -35,10 +42,18 @@ struct ProudlyApp: App {
 
 private struct RootView: View {
   @Environment(ThemeViewModel.self) private var theme
+  @Environment(SubscriptionStore.self) private var subscriptionStore
 
   var body: some View {
     HomeView()
       .tint(theme.activeTheme.accentColor)
       .preferredColorScheme(theme.activeTheme == .midnightCalm ? .dark : nil)
+      .task {
+        subscriptionStore.configureIfNeeded()
+      }
+      .onChange(of: subscriptionStore.hasProudlyPlus) { _, hasProudlyPlus in
+        theme.isPlusUser = hasProudlyPlus
+        UserDefaults.standard.set(hasProudlyPlus, forKey: ThemeViewModel.plusCacheKey)
+      }
   }
 }

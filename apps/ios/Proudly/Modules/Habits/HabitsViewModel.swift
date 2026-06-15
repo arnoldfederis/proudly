@@ -10,7 +10,6 @@ import Observation
 
 @Observable
 final class HabitsViewModel {
-  var habits: [Habit] = Habit.samples
   var filter: HabitFilter = .all
 
   enum HabitFilter: String, CaseIterable {
@@ -19,36 +18,11 @@ final class HabitsViewModel {
     case completed = "Completed"
   }
 
-  var filteredHabits: [Habit] {
+  func filteredHabits(from habits: [Habit]) -> [Habit] {
     switch filter {
     case .all: return habits
     case .active: return habits.filter { !$0.isCompletedToday }
     case .completed: return habits.filter { $0.isCompletedToday }
     }
-  }
-
-  func toggleCompletion(for habit: Habit) {
-    guard let index = habits.firstIndex(where: { $0.id == habit.id }) else { return }
-    let key = dateKey(for: .now)
-    if habits[index].completedDates.contains(key) {
-      habits[index].completedDates.remove(key)
-    } else {
-      habits[index].completedDates.insert(key)
-    }
-  }
-
-  func addHabit(_ habit: Habit) {
-    habits.insert(habit, at: 0)
-  }
-
-  func updateHabit(_ habit: Habit) {
-    guard let index = habits.firstIndex(where: { $0.id == habit.id }) else { return }
-    habits[index] = habit
-  }
-
-  private func dateKey(for date: Date) -> String {
-    let formatter = DateFormatter()
-    formatter.dateFormat = "yyyy-MM-dd"
-    return formatter.string(from: date)
   }
 }

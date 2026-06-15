@@ -17,8 +17,8 @@ private enum HomeTab: Hashable {
 
 struct HomeView: View {
   @Environment(ThemeViewModel.self) private var theme
+  @Environment(SubscriptionStore.self) private var subscriptionStore
   @State private var selectedTab: HomeTab = .today
-  @State private var isPlus: Bool = false
 
   var body: some View {
     TabView(selection: $selectedTab) {
@@ -28,7 +28,7 @@ struct HomeView: View {
       Tab("Habits", systemImage: "checkmark.rectangle.stack", value: .habits) {
         HabitsView()
       }
-      if isPlus {
+      if subscriptionStore.hasProudlyPlus {
         Tab("Insights", systemImage: "chart.bar", value: .insights) {
           InsightsView()
         }
@@ -47,4 +47,6 @@ struct HomeView: View {
 #Preview {
   HomeView()
     .environment(ThemeViewModel())
+    .environment(SubscriptionStore())
+    .environment(HabitRepository.preview)
 }
