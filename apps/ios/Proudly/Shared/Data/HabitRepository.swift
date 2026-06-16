@@ -2,7 +2,7 @@
 //  HabitRepository.swift
 //  Proudly
 //
-//  Created by Arnolfo Federis on 6/15/26.
+//  Created by Arnolfo Federis on 6/16/26.
 //
 
 import Foundation
@@ -10,18 +10,25 @@ import Observation
 import SwiftData
 import SwiftUI
 
+@MainActor
 @Observable
 final class HabitRepository {
   private let modelContext: ModelContext
+  private let notificationManager: NotificationManager
+
   private(set) var activeHabits: [Habit] = []
 
   private var hasSeeded: Bool {
-    get { UserDefaults.standard.bool(forKey: "hasSeededDefaultHabits") }
-    set { UserDefaults.standard.set(newValue, forKey: "hasSeededDefaultHabits") }
+    get { UserDefaults.standard.bool(forKey: Self.seededKey) }
+    set { UserDefaults.standard.set(newValue, forKey: Self.seededKey) }
   }
 
-  init(modelContext: ModelContext) {
+  init(
+    modelContext: ModelContext,
+    notificationManager: NotificationManager? = nil
+  ) {
     self.modelContext = modelContext
+    self.notificationManager = notificationManager ?? .shared
     refresh()
     seedIfNeeded()
   }
@@ -34,71 +41,185 @@ final class HabitRepository {
       sortBy: [SortDescriptor(\.createdAt, order: .reverse)]
     )
     let persistent = (try? modelContext.fetch(descriptor)) ?? []
-    activeHabits = persistent.map { map($0) }
+    activeHabits = persistent.map(map(_:))
+  }
+
+  func seedIfNeeded() {
+    guard UserDefaults.standard.bool(forKey: Self.onboardingKey) else { return }
+    guard !hasSeeded else { return }
+
+    if !activeHabits.isEmpty {
+      hasSeeded = true
+      return
+    }
+
+    let now = Date.now
+    let seeds: [(name: String, icon: String, color: Color, note: String, offset: TimeInterval)] = [
+      ("Read 10 pages", "book.fill", ProudlyTheme.purple, "Feed your mind daily", -2),
+      ("Walk 10 minutes", "figure.walk", ProudlyTheme.mint, "A short walk clears the mind", -1),
+      ("Drink water", "drop.fill", ProudlyTheme.blue, "Stay hydrated all day", 0),
+    ]
+
+    for seed in seeds {
+      let persistentHabit = PersistentHabit(
+        name: seed.name,
+        icon: seed.icon,
+        colorHex: seed.color.toHex(),
+        note: seed.note,
+        dailyTargetCount: 1,
+        remindersEnabled: false,
+        reminderTimes: "",
+        createdAt: now.addingTimeInterval(seed.offset)
+      )
+      modelContext.insert(persistentHabit)
+    }
+
+    save()
+    hasSeeded = true
+    refresh()
+  }
+
+  func completedCount(for habit: Habit, on dateKey: String) -> Int {
+    if let persistentHabit = fetchPersistent(id: habit.id),
+      let completion = completion(for: persistentHabit, dateKey: dateKey)
+    {
+      return max(completion.count, 0)
+    }
+
+    return habit.completionCountsByDate[dateKey] ?? 0
+  }
+
+  func completionProgress(for habit: Habit, on dateKey: String) -> Double {
+    let count = completedCount(for: habit, on: dateKey)
+    return min(Double(count) / Double(max(habit.dailyTargetCount, 1)), 1)
   }
 
   // MARK: - Write
 
-  func addHabit(_ habit: Habit) {
-    let (hour, minute) = parseReminder(habit.reminder)
-    let p = PersistentHabit(
+  func addHabit(_ habit: Habit, markSeeded: Bool = false) {
+    let reminderString = Self.normalizedReminderTimesString(from: habit.reminderTimes)
+    let legacyReminder = habit.reminderTimes.first
+    let (hour, minute) = Self.parseReminder(legacyReminder)
+    let persistentHabit = PersistentHabit(
       id: habit.id,
       name: habit.name,
       icon: habit.icon,
       colorHex: habit.color.toHex(),
       note: habit.note,
+      dailyTargetCount: max(habit.dailyTargetCount, 1),
+      remindersEnabled: habit.remindersEnabled && !habit.reminderTimes.isEmpty,
+      reminderTimes: reminderString,
       reminderHour: hour,
       reminderMinute: minute
     )
-    modelContext.insert(p)
+    modelContext.insert(persistentHabit)
+    save()
+
+    if markSeeded {
+      hasSeeded = true
+    }
+
+    refresh()
+    syncReminders(for: habit)
+  }
+
+  func updateHabit(_ habit: Habit) {
+    guard let persistentHabit = fetchPersistent(id: habit.id) else { return }
+    let reminderString = Self.normalizedReminderTimesString(from: habit.reminderTimes)
+    let legacyReminder = habit.reminderTimes.first
+    let (hour, minute) = Self.parseReminder(legacyReminder)
+
+    persistentHabit.name = habit.name
+    persistentHabit.icon = habit.icon
+    persistentHabit.colorHex = habit.color.toHex()
+    persistentHabit.note = habit.note
+    persistentHabit.dailyTargetCount = max(habit.dailyTargetCount, 1)
+    persistentHabit.remindersEnabled = habit.remindersEnabled && !habit.reminderTimes.isEmpty
+    persistentHabit.reminderTimes = reminderString
+    persistentHabit.reminderHour = hour
+    persistentHabit.reminderMinute = minute
+    persistentHabit.updatedAt = .now
+
+    save()
+    refresh()
+    syncReminders(for: habit)
+  }
+
+  func incrementCompletion(for habit: Habit) {
+    guard let persistentHabit = fetchPersistent(id: habit.id) else { return }
+    let today = Self.dateKey(for: .now)
+    let target = max(persistentHabit.dailyTargetCount, 1)
+
+    if let existing = completion(for: persistentHabit, dateKey: today) {
+      guard existing.count < target else { return }
+      existing.count += 1
+      existing.completedAt = .now
+    } else {
+      let completion = PersistentHabitCompletion(habitId: habit.id, dateKey: today, count: 1)
+      persistentHabit.completions.append(completion)
+    }
+
+    persistentHabit.updatedAt = .now
     save()
     refresh()
   }
 
-  func updateHabit(_ habit: Habit) {
-    guard let p = fetchPersistent(id: habit.id) else { return }
-    let (hour, minute) = parseReminder(habit.reminder)
-    p.name = habit.name
-    p.icon = habit.icon
-    p.colorHex = habit.color.toHex()
-    p.note = habit.note
-    p.reminderHour = hour
-    p.reminderMinute = minute
-    p.updatedAt = .now
+  func decrementCompletion(for habit: Habit) {
+    guard let persistentHabit = fetchPersistent(id: habit.id) else { return }
+    let today = Self.dateKey(for: .now)
+    guard let existing = completion(for: persistentHabit, dateKey: today) else { return }
+
+    if existing.count > 1 {
+      existing.count -= 1
+      existing.completedAt = .now
+    } else {
+      modelContext.delete(existing)
+    }
+
+    persistentHabit.updatedAt = .now
     save()
     refresh()
   }
 
   func toggleCompletion(for habit: Habit) {
-    guard let p = fetchPersistent(id: habit.id) else { return }
+    let target = max(habit.dailyTargetCount, 1)
     let today = Self.dateKey(for: .now)
-    if let existing = p.completions.first(where: { $0.dateKey == today }) {
-      modelContext.delete(existing)
-    } else {
-      let completion = PersistentHabitCompletion(habitId: habit.id, dateKey: today)
-      p.completions.append(completion)
+    let count = completedCount(for: habit, on: today)
+
+    if target == 1 {
+      count > 0 ? decrementCompletion(for: habit) : incrementCompletion(for: habit)
+      return
     }
-    save()
-    refresh()
+
+    if count >= target {
+      decrementCompletion(for: habit)
+    } else {
+      incrementCompletion(for: habit)
+    }
   }
 
   func archiveHabit(_ habit: Habit) {
-    guard let p = fetchPersistent(id: habit.id) else { return }
-    p.isArchived = true
-    p.updatedAt = .now
+    guard let persistentHabit = fetchPersistent(id: habit.id) else { return }
+    persistentHabit.isArchived = true
+    persistentHabit.updatedAt = .now
     save()
     refresh()
+
+    Task {
+      await notificationManager.cancelReminders(for: habit.id)
+    }
   }
 
   // MARK: - Proud Moments
 
   var proudMoments: [ProudMoment] {
-    let fmt = Self.dateFormatter
+    let formatter = Self.dateFormatter
     var moments: [ProudMoment] = []
+
     for habit in activeHabits {
       let sorted = habit.completedDates
         .compactMap { key -> (String, Date)? in
-          guard let date = fmt.date(from: key) else { return nil }
+          guard let date = formatter.date(from: key) else { return nil }
           return (key, date)
         }
         .sorted { $0.1 > $1.1 }
@@ -117,6 +238,7 @@ final class HabitRepository {
           ))
       }
     }
+
     return moments.sorted { $0.date > $1.date }
   }
 
@@ -124,68 +246,48 @@ final class HabitRepository {
     switch streak {
     case 0: return "Every start counts. Keep going!"
     case 1: return "Day 1 done. The journey begins!"
-    case 2...6: return "\(streak.proudlyDayPhrase) strong — you're building a habit!"
+    case 2...6: return "\(streak.proudlyDayPhrase) strong - you're building a habit!"
     case 7...13: return "\(streak.proudlyStreakLabel)! You're on fire."
-    case 14...29: return "\(streak.proudlyDayPhrase) in a row — incredible!"
+    case 14...29: return "\(streak.proudlyDayPhrase) in a row - incredible!"
     default: return "\(streak.proudlyStreakLabel)! You're unstoppable."
     }
   }
 
-  // MARK: - Seed
+  // MARK: - Streak helpers
 
-  private func seedIfNeeded() {
-    guard !hasSeeded else { return }
-    let now = Date.now
-    // Inserted oldest-first so sort-by-createdAt-descending gives the desired display order.
-    let seeds: [(name: String, icon: String, color: Color, note: String, offset: TimeInterval)] = [
-      ("Read 10 pages", "book.fill", ProudlyTheme.purple, "Feed your mind daily", -2),
-      ("Walk 10 minutes", "figure.walk", ProudlyTheme.mint, "A short walk clears the mind", -1),
-      ("Drink water", "drop.fill", ProudlyTheme.blue, "Stay hydrated all day", 0),
-    ]
-    for seed in seeds {
-      let p = PersistentHabit(
-        name: seed.name,
-        icon: seed.icon,
-        colorHex: seed.color.toHex(),
-        note: seed.note,
-        createdAt: now.addingTimeInterval(seed.offset)
-      )
-      modelContext.insert(p)
-    }
-    save()
-    hasSeeded = true
-    refresh()
-  }
-
-  // MARK: - Streak helpers (static so HabitDetailView can reuse)
-
-  static func currentStreak(keys: Set<String>) -> Int {
-    let cal = Calendar.current
-    let fmt = Self.dateFormatter
+  static func currentStreak(completedKeys: Set<String>) -> Int {
+    let calendar = Calendar.current
+    let formatter = Self.dateFormatter
     var date = Date.now
     var streak = 0
-    if !keys.contains(fmt.string(from: date)) {
-      guard let yesterday = cal.date(byAdding: .day, value: -1, to: date) else { return 0 }
+
+    if !completedKeys.contains(formatter.string(from: date)) {
+      guard let yesterday = calendar.date(byAdding: .day, value: -1, to: date) else { return 0 }
       date = yesterday
     }
-    while keys.contains(fmt.string(from: date)) {
+
+    while completedKeys.contains(formatter.string(from: date)) {
       streak += 1
-      guard let prev = cal.date(byAdding: .day, value: -1, to: date) else { break }
-      date = prev
+      guard let previous = calendar.date(byAdding: .day, value: -1, to: date) else { break }
+      date = previous
     }
+
     return streak
   }
 
-  static func bestStreak(keys: Set<String>) -> Int {
-    guard !keys.isEmpty else { return 0 }
-    let fmt = Self.dateFormatter
-    let cal = Calendar.current
-    let sorted = keys.compactMap { fmt.date(from: $0) }.sorted()
+  static func bestStreak(completedKeys: Set<String>) -> Int {
+    guard !completedKeys.isEmpty else { return 0 }
+    let calendar = Calendar.current
+    let formatter = Self.dateFormatter
+    let sorted = completedKeys.compactMap { formatter.date(from: $0) }.sorted()
     guard sorted.count > 1 else { return 1 }
+
     var best = 1
     var current = 1
-    for i in 1..<sorted.count {
-      let diff = cal.dateComponents([.day], from: sorted[i - 1], to: sorted[i]).day ?? 0
+
+    for index in 1..<sorted.count {
+      let diff =
+        calendar.dateComponents([.day], from: sorted[index - 1], to: sorted[index]).day ?? 0
       if diff == 1 {
         current += 1
         best = max(best, current)
@@ -193,6 +295,7 @@ final class HabitRepository {
         current = 1
       }
     }
+
     return best
   }
 
@@ -202,18 +305,38 @@ final class HabitRepository {
 
   // MARK: - Private helpers
 
-  private func map(_ p: PersistentHabit) -> Habit {
-    let keys = Set(p.completions.map(\.dateKey))
+  private func map(_ persistentHabit: PersistentHabit) -> Habit {
+    let target = max(persistentHabit.dailyTargetCount, 1)
+    let countsByDate = persistentHabit.completions.reduce(into: [String: Int]()) {
+      partialResult, completion in
+      partialResult[completion.dateKey] = max(completion.count, 0)
+    }
+
+    let completedDates = Set(
+      countsByDate.compactMap { key, count in
+        count >= target ? key : nil
+      })
+
+    let reminders = Self.reminderTimes(
+      from: persistentHabit.reminderTimes,
+      fallbackHour: persistentHabit.reminderHour,
+      fallbackMinute: persistentHabit.reminderMinute
+    )
+
     return Habit(
-      id: p.id,
-      name: p.name,
-      icon: p.icon,
-      color: Color(hex: p.colorHex),
-      streak: Self.currentStreak(keys: keys),
-      bestStreak: Self.bestStreak(keys: keys),
-      completedDates: keys,
-      note: p.note,
-      reminder: reminderString(hour: p.reminderHour, minute: p.reminderMinute)
+      id: persistentHabit.id,
+      name: persistentHabit.name,
+      icon: persistentHabit.icon,
+      color: Color(hex: persistentHabit.colorHex),
+      streak: Self.currentStreak(completedKeys: completedDates),
+      bestStreak: Self.bestStreak(completedKeys: completedDates),
+      completedDates: completedDates,
+      completionCountsByDate: countsByDate,
+      note: persistentHabit.note,
+      dailyTargetCount: target,
+      completedCountToday: countsByDate[Self.dateKey(for: .now)] ?? 0,
+      remindersEnabled: persistentHabit.remindersEnabled || !reminders.isEmpty,
+      reminderTimes: reminders
     )
   }
 
@@ -224,50 +347,90 @@ final class HabitRepository {
     return try? modelContext.fetch(descriptor).first
   }
 
+  private func completion(for habit: PersistentHabit, dateKey: String) -> PersistentHabitCompletion?
+  {
+    habit.completions.first(where: { $0.dateKey == dateKey })
+  }
+
+  private func syncReminders(for habit: Habit) {
+    Task {
+      if habit.remindersEnabled && !habit.reminderTimes.isEmpty {
+        await notificationManager.scheduleReminders(for: habit)
+      } else {
+        await notificationManager.cancelReminders(for: habit.id)
+      }
+    }
+  }
+
   private func save() {
     try? modelContext.save()
   }
 
-  private func reminderString(hour: Int?, minute: Int?) -> String? {
-    guard let hour, let minute else { return nil }
-    let components = DateComponents(hour: hour, minute: minute)
-    guard let date = Calendar.current.date(from: components) else { return nil }
-    let fmt = DateFormatter()
-    fmt.dateFormat = "h:mm a"
-    return fmt.string(from: date)
+  private static func reminderTimes(
+    from reminderTimes: String,
+    fallbackHour: Int?,
+    fallbackMinute: Int?
+  ) -> [String] {
+    let normalized =
+      reminderTimes
+      .split(separator: ",")
+      .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+      .filter { !$0.isEmpty }
+
+    if !normalized.isEmpty {
+      return normalized
+    }
+
+    guard let fallbackHour, let fallbackMinute else { return [] }
+    return [String(format: "%02d:%02d", fallbackHour, fallbackMinute)]
   }
 
-  private func parseReminder(_ s: String?) -> (Int?, Int?) {
-    guard let s else { return (nil, nil) }
-    let fmt = DateFormatter()
-    fmt.dateFormat = "h:mm a"
-    guard let date = fmt.date(from: s) else { return (nil, nil) }
-    let c = Calendar.current.dateComponents([.hour, .minute], from: date)
-    return (c.hour, c.minute)
+  private static func normalizedReminderTimesString(from reminderTimes: [String]) -> String {
+    reminderTimes
+      .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+      .filter { !$0.isEmpty }
+      .joined(separator: ",")
   }
+
+  private static func parseReminder(_ reminder: String?) -> (Int?, Int?) {
+    guard let reminder else { return (nil, nil) }
+    let parts = reminder.split(separator: ":")
+    guard parts.count == 2,
+      let hour = Int(parts[0]),
+      let minute = Int(parts[1])
+    else {
+      return (nil, nil)
+    }
+
+    return (hour, minute)
+  }
+
+  private static let onboardingKey = "hasCompletedOnboarding"
+  private static let seededKey = "hasSeededDefaultHabits"
 
   private static let dateFormatter: DateFormatter = {
-    let f = DateFormatter()
-    f.dateFormat = "yyyy-MM-dd"
-    return f
+    let formatter = DateFormatter()
+    formatter.dateFormat = "yyyy-MM-dd"
+    return formatter
   }()
 }
 
 #if DEBUG
   extension HabitRepository {
-    /// In-memory repository pre-loaded with sample habits for Xcode Previews.
     static var preview: HabitRepository {
       let schema = Schema([PersistentHabit.self, PersistentHabitCompletion.self])
       let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
       let container = try! ModelContainer(for: schema, configurations: [config])
-      let repo = HabitRepository(modelContext: container.mainContext)
-      // UserDefaults seeding flag may be set from a real launch; force-seed if empty.
-      if repo.activeHabits.isEmpty {
-        for habit in repo.activeHabits {
-          repo.addHabit(habit)
-        }
+      UserDefaults.standard.set(true, forKey: "hasCompletedOnboarding")
+      let repository = HabitRepository(modelContext: container.mainContext)
+
+      if repository.activeHabits.isEmpty {
+        repository.addHabit(Habit.samples[0], markSeeded: true)
+        repository.addHabit(Habit.samples[1], markSeeded: true)
+        repository.addHabit(Habit.samples[2], markSeeded: true)
       }
-      return repo
+
+      return repository
     }
   }
 #endif

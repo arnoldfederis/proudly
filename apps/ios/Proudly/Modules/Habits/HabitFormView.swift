@@ -8,6 +8,36 @@
 import SwiftUI
 import UIKit
 
+private enum HabitReminderMode: String, CaseIterable, Identifiable {
+  case none
+  case basedOnTarget
+  case customFirstTime
+
+  var id: String { rawValue }
+
+  var title: String {
+    switch self {
+    case .none:
+      return "No reminder"
+    case .basedOnTarget:
+      return "Based on daily target"
+    case .customFirstTime:
+      return "Custom first reminder"
+    }
+  }
+
+  var subtitle: String {
+    switch self {
+    case .none:
+      return "Keep this habit quiet for now."
+    case .basedOnTarget:
+      return "Spread reminders gently through the day."
+    case .customFirstTime:
+      return "Pick the first reminder time yourself."
+    }
+  }
+}
+
 struct HabitFormView: View {
   @Environment(\.dismiss) private var dismiss
   @Environment(ThemeViewModel.self) private var theme
@@ -17,20 +47,18 @@ struct HabitFormView: View {
 
   @State private var habitName: String
   @State private var habitDescription: String
-  @State private var selectedIconIndex: Int
-  @State private var customEmoji: String
-  @State private var showEmojiInput = false
+  @State private var selectedIcon: String
+  @State private var isSFSymbolPickerPresented = false
   @State private var selectedColorIndex: Int
   @State private var customColor: Color
-  @State private var dailyReminderEnabled: Bool
+  @State private var selectedTargetCount: Int
+  @State private var customTargetCount: Int
+  @State private var reminderMode: HabitReminderMode
   @State private var reminderTime: Date
-  @FocusState private var emojiFieldFocused: Bool
+  @State private var isSaving = false
+  @State private var permissionMessage: String?
 
-  private let icons = [
-    "star.fill", "heart.fill", "drop.fill", "figure.walk", "book.fill",
-    "moon.fill", "sun.max.fill", "leaf.fill", "bolt.fill", "dumbbell.fill",
-    "music.note", "fork.knife",
-  ]
+  private let icons = Self.iconOptions
   private let colors: [Color] = [
     ProudlyTheme.purple, ProudlyTheme.pink, ProudlyTheme.blue, ProudlyTheme.mint,
     .orange, .red, .yellow, .teal,
@@ -42,39 +70,37 @@ struct HabitFormView: View {
 
     let iconOptions = Self.iconOptions
     let colorOptions = Self.colorOptions
-    let seededReminderTime = Self.reminderDate(from: habit?.reminder)
+    let reminderDate = NotificationManager.reminderDate(from: habit?.reminderTimes.first)
 
-    let selectedIconIndex: Int
-    let customEmoji: String
-    if let icon = habit?.icon, let index = iconOptions.firstIndex(of: icon) {
-      selectedIconIndex = index
-      customEmoji = ""
-    } else if let icon = habit?.icon, !icon.isEmpty {
-      selectedIconIndex = -1
-      customEmoji = icon
-    } else {
-      selectedIconIndex = 0
-      customEmoji = ""
-    }
+    let selectedIcon = {
+      guard let icon = habit?.icon.trimmingCharacters(in: .whitespacesAndNewlines), !icon.isEmpty
+      else {
+        return iconOptions[0]
+      }
+      return icon
+    }()
 
     let selectedColorIndex = Self.colorIndex(for: habit?.color, options: colorOptions)
     let fallbackColor = habit?.color ?? ProudlyTheme.purple
+    let target = habit?.dailyTargetCount ?? 1
+    let selectedTargetCount = (1...4).contains(target) ? target : 0
+    let resolvedReminderMode = Self.resolveReminderMode(for: habit)
 
     _habitName = State(initialValue: habit?.name ?? "")
     _habitDescription = State(initialValue: habit?.note ?? "")
-    _selectedIconIndex = State(initialValue: selectedIconIndex)
-    _customEmoji = State(initialValue: customEmoji)
+    _selectedIcon = State(initialValue: selectedIcon)
     _selectedColorIndex = State(initialValue: selectedColorIndex)
     _customColor = State(
       initialValue: selectedColorIndex == -1 ? fallbackColor : colorOptions[selectedColorIndex])
-    _dailyReminderEnabled = State(initialValue: habit?.reminder != nil)
-    _reminderTime = State(initialValue: seededReminderTime)
+    _selectedTargetCount = State(initialValue: selectedTargetCount)
+    _customTargetCount = State(initialValue: selectedTargetCount == 0 ? target : 5)
+    _reminderMode = State(initialValue: resolvedReminderMode)
+    _reminderTime = State(initialValue: reminderDate)
   }
 
   private static let iconOptions = [
-    "star.fill", "heart.fill", "drop.fill", "figure.walk", "book.fill",
-    "moon.fill", "sun.max.fill", "leaf.fill", "bolt.fill", "dumbbell.fill",
-    "music.note", "fork.knife",
+    "drop.fill", "figure.walk", "book.fill", "moon.stars.fill", "heart.fill", "flame.fill",
+    "sparkles", "pencil", "leaf.fill", "dumbbell.fill", "music.note", "fork.knife",
   ]
   private static let colorOptions: [Color] = [
     ProudlyTheme.purple, ProudlyTheme.pink, ProudlyTheme.blue, ProudlyTheme.mint,
@@ -82,17 +108,40 @@ struct HabitFormView: View {
   ]
 
   private var isEditing: Bool { habit != nil }
-  private var isCustomIcon: Bool { selectedIconIndex == -1 }
+  private var isCustomIcon: Bool { !icons.contains(selectedIcon) }
   private var isCustomColor: Bool { selectedColorIndex == -1 }
   private var effectiveColor: Color { isCustomColor ? customColor : colors[selectedColorIndex] }
+  private var effectiveDailyTargetCount: Int {
+    selectedTargetCount == 0 ? max(customTargetCount, 1) : selectedTargetCount
+  }
   private var effectiveIcon: String {
-    if isCustomIcon {
-      return customEmoji.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-        ? "star.fill" : customEmoji
+    if selectedIcon.isHabitSFSymbol {
+      return selectedIcon
     }
-    return icons[selectedIconIndex]
+    return selectedIcon.firstHabitEmoji ?? "sparkles"
   }
   private var canSave: Bool { !habitName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+  private var reminderTimes: [String] {
+    switch reminderMode {
+    case .none:
+      return []
+    case .basedOnTarget:
+      return NotificationManager.defaultReminderTimes(for: effectiveDailyTargetCount)
+    case .customFirstTime:
+      return NotificationManager.generatedReminderTimes(
+        for: effectiveDailyTargetCount,
+        firstTime: reminderTime
+      )
+    }
+  }
+
+  private var showsReminderPicker: Bool {
+    reminderMode == .customFirstTime
+  }
+
+  private var showsReminderPreview: Bool {
+    reminderMode != .none && !reminderTimes.isEmpty
+  }
 
   var body: some View {
     NavigationStack {
@@ -105,6 +154,7 @@ struct HabitFormView: View {
             nameField
             descriptionField
             colorSection
+            frequencySection
             reminderSection
           }
           .padding(.horizontal, 20)
@@ -116,21 +166,36 @@ struct HabitFormView: View {
       .navigationBarTitleDisplayMode(.inline)
       .toolbar {
         ToolbarItem(placement: .cancellationAction) {
-          Button("Cancel") {
-            dismiss()
-          }
-          //          .tint(effectiveColor)
+          Button("Cancel") { dismiss() }
         }
         ToolbarItem(placement: .confirmationAction) {
           Button(isEditing ? "Save" : "Add") {
-            saveHabit()
+            Task {
+              await saveHabit()
+            }
           }
-          //          .tint(effectiveColor)
           .fontWeight(.semibold)
-          .disabled(!canSave)
+          .disabled(!canSave || isSaving)
         }
       }
       .tint(.primary)
+      .alert(
+        "Reminders unavailable", isPresented: .constant(permissionMessage != nil),
+        actions: {
+          Button("OK") { permissionMessage = nil }
+        },
+        message: {
+          Text(permissionMessage ?? "")
+        }
+      )
+      .sheet(isPresented: $isSFSymbolPickerPresented) {
+        SFSymbolPickerView(
+          selectedSymbol: $selectedIcon,
+          symbolTint: effectiveColor,
+          excludedSymbols: Set(icons)
+        )
+        .environment(theme)
+      }
     }
     .preferredColorScheme(theme.activeTheme == .midnightCalm ? .dark : nil)
   }
@@ -143,78 +208,28 @@ struct HabitFormView: View {
 
       ScrollView(.horizontal, showsIndicators: false) {
         LazyHStack(spacing: 10) {
-          ForEach(icons.indices, id: \.self) { i in
+          ForEach(icons.indices, id: \.self) { index in
             Button {
-              selectedIconIndex = i
-              showEmojiInput = false
+              selectedIcon = icons[index]
               Haptics.selection()
             } label: {
-              ZStack {
-                Circle()
-                  .fill(selectedIconIndex == i ? effectiveColor : effectiveColor.opacity(0.12))
-                  .frame(width: 52, height: 52)
-                Image(systemName: icons[i])
-                  .font(.system(size: 20))
-                  .foregroundStyle(selectedIconIndex == i ? .white : effectiveColor)
-              }
-              .animation(.spring(response: 0.25), value: selectedIconIndex)
+              iconBubble(
+                icon: icons[index],
+                isSelected: selectedIcon == icons[index]
+              )
             }
             .buttonStyle(.plain)
           }
 
-          Button {
-            selectedIconIndex = -1
-            showEmojiInput = true
-            emojiFieldFocused = true
-            Haptics.selection()
-          } label: {
-            ZStack {
-              Circle()
-                .fill(
-                  isCustomIcon && !customEmoji.isEmpty ? effectiveColor : Color.gray.opacity(0.15)
-                )
-                .frame(width: 52, height: 52)
-              if isCustomIcon && !customEmoji.isEmpty {
-                Text(customEmoji)
-                  .font(.system(size: 26))
-              } else {
-                Image(systemName: "plus")
-                  .font(.system(size: 18, weight: .medium))
-                  .foregroundStyle(.gray)
-              }
-            }
-            .animation(.spring(response: 0.25), value: isCustomIcon && !customEmoji.isEmpty)
-          }
-          .buttonStyle(.plain)
+          pickerIconButton
         }
         .padding(.vertical, 2)
       }
 
-      if showEmojiInput {
-        HStack(spacing: 10) {
-          TextField("Type an emoji…", text: $customEmoji)
-            .focused($emojiFieldFocused)
-            .onChange(of: customEmoji) { _, newValue in
-              let trimmed = newValue.trimmingCharacters(in: .whitespacesAndNewlines)
-              guard !trimmed.isEmpty else { return }
-              customEmoji = String(trimmed.prefix(1))
-              showEmojiInput = false
-              emojiFieldFocused = false
-            }
-            .padding(12)
-            .proudlyGlass(cornerRadius: 12)
-
-          Button("Cancel") {
-            showEmojiInput = false
-            if customEmoji.isEmpty { selectedIconIndex = 0 }
-          }
-          .foregroundStyle(.secondary)
-          .buttonStyle(.plain)
-        }
-        .transition(.opacity.combined(with: .move(edge: .top)))
-      }
+      Text("Choose a preset, or open the full SF Symbol picker for more symbols and emoji.")
+        .font(.caption)
+        .foregroundStyle(.secondary)
     }
-    .animation(.spring(response: 0.3, dampingFraction: 0.8), value: showEmojiInput)
   }
 
   private var nameField: some View {
@@ -222,7 +237,7 @@ struct HabitFormView: View {
       Text("Habit Name")
         .font(.subheadline)
         .foregroundStyle(.secondary)
-      TextField("e.g. Drink water", text: $habitName)
+      TextField("Drink water", text: $habitName)
         .padding(14)
         .proudlyGlass(cornerRadius: 14)
     }
@@ -248,16 +263,16 @@ struct HabitFormView: View {
 
       ScrollView(.horizontal, showsIndicators: false) {
         LazyHStack(spacing: 12) {
-          ForEach(colors.indices, id: \.self) { i in
+          ForEach(colors.indices, id: \.self) { index in
             Button {
-              selectedColorIndex = i
+              selectedColorIndex = index
               Haptics.selection()
             } label: {
               ZStack {
                 Circle()
-                  .fill(colors[i])
+                  .fill(colors[index])
                   .frame(width: 34, height: 34)
-                if selectedColorIndex == i {
+                if selectedColorIndex == index {
                   Image(systemName: "checkmark")
                     .font(.system(size: 13, weight: .bold))
                     .foregroundStyle(.white)
@@ -276,6 +291,7 @@ struct HabitFormView: View {
                 selectedColorIndex = -1
                 Haptics.selection()
               }
+
             Circle()
               .fill(isCustomColor ? customColor : Color.gray.opacity(0.15))
               .frame(width: 34, height: 34)
@@ -300,47 +316,216 @@ struct HabitFormView: View {
     }
   }
 
-  private var reminderSection: some View {
-    VStack(spacing: 0) {
-      HStack {
-        ZStack {
-          RoundedRectangle(cornerRadius: 8)
-            .fill(effectiveColor.opacity(0.15))
-            .frame(width: 34, height: 34)
-          Image(systemName: "bell.fill")
-            .font(.system(size: 14))
-            .foregroundStyle(effectiveColor)
-        }
-        Text("Daily Reminder").font(.system(size: 16, weight: .medium))
-        Spacer()
-        Toggle("", isOn: $dailyReminderEnabled)
-          .labelsHidden()
-          .tint(effectiveColor)
-      }
-      .padding(16)
+  private var frequencySection: some View {
+    VStack(alignment: .leading, spacing: 10) {
+      Text("Daily Goal")
+        .font(.subheadline)
+        .foregroundStyle(.secondary)
 
-      if dailyReminderEnabled {
-        Divider()
-          .padding(.leading, 62)
-          .opacity(0.4)
+      VStack(spacing: 12) {
+        ForEach([1, 2, 3, 4], id: \.self) { value in
+          frequencyButton(value: value)
+        }
 
         HStack {
-          Text("Time")
-            .font(.system(size: 15))
-            .foregroundStyle(.secondary)
+          VStack(alignment: .leading, spacing: 4) {
+            Text("Custom")
+              .font(.system(size: 16, weight: .semibold))
+            Text("\(effectiveDailyTargetCount) times each day")
+              .font(.caption)
+              .foregroundStyle(.secondary)
+              .contentTransition(.numericText())
+          }
+
           Spacer()
-          DatePicker("", selection: $reminderTime, displayedComponents: .hourAndMinute)
+
+          Stepper("", value: $customTargetCount, in: 1...8)
             .labelsHidden()
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
+        .padding(16)
+        .frame(maxWidth: .infinity)
+        .background(selectedTargetCount == 0 ? effectiveColor.opacity(0.16) : .clear)
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .contentShape(Rectangle())
+        .proudlyGlass(cornerRadius: 16)
+        .onTapGesture {
+          selectedTargetCount = 0
+          Haptics.selection()
+        }
       }
     }
-    .proudlyGlass(cornerRadius: 16)
-    .animation(.spring(response: 0.35, dampingFraction: 0.8), value: dailyReminderEnabled)
   }
 
-  private func saveHabit() {
+  private var reminderSection: some View {
+    VStack(alignment: .leading, spacing: 10) {
+      Text("Reminders")
+        .font(.subheadline)
+        .foregroundStyle(.secondary)
+
+      VStack(spacing: 12) {
+        ForEach(HabitReminderMode.allCases) { mode in
+          Button {
+            reminderMode = mode
+            Haptics.selection()
+          } label: {
+            HStack(spacing: 14) {
+              Image(systemName: reminderIcon(for: mode))
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundStyle(reminderMode == mode ? effectiveColor : .secondary)
+                .frame(width: 22, height: 22)
+
+              VStack(alignment: .leading, spacing: 4) {
+                Text(mode.title)
+                  .font(.system(size: 16, weight: .semibold))
+                Text(mode.subtitle)
+                  .font(.caption)
+                  .foregroundStyle(.secondary)
+              }
+
+              Spacer()
+
+              Image(systemName: reminderMode == mode ? "checkmark.circle.fill" : "circle")
+                .font(.system(size: 20, weight: .semibold))
+                .foregroundStyle(reminderMode == mode ? effectiveColor : .secondary)
+            }
+            .padding(16)
+            .frame(maxWidth: .infinity)
+            .background(reminderMode == mode ? effectiveColor.opacity(0.16) : .clear)
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .contentShape(Rectangle())
+            .proudlyGlass(cornerRadius: 16)
+          }
+          .buttonStyle(.plain)
+        }
+
+        if showsReminderPicker || showsReminderPreview {
+          VStack(alignment: .leading, spacing: 10) {
+            if showsReminderPicker {
+              DatePicker(
+                "First reminder",
+                selection: $reminderTime,
+                displayedComponents: .hourAndMinute
+              )
+              .datePickerStyle(.compact)
+            }
+
+            if showsReminderPreview {
+              Text("Planned reminders")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+
+              Text(reminderTimes.joined(separator: "  •  "))
+                .font(.caption.weight(.medium))
+                .foregroundStyle(.secondary)
+                .contentTransition(.numericText())
+            }
+          }
+          .padding(16)
+          .proudlyGlass(cornerRadius: 16)
+          .transition(.opacity.combined(with: .move(edge: .top)))
+        }
+      }
+    }
+    .animation(.spring(response: 0.35, dampingFraction: 0.8), value: reminderMode)
+  }
+
+  private func frequencyButton(value: Int) -> some View {
+    Button {
+      selectedTargetCount = value
+      Haptics.selection()
+    } label: {
+      HStack {
+        VStack(alignment: .leading, spacing: 4) {
+          Text(value == 1 ? "Once a day" : value == 2 ? "Twice a day" : "\(value) times a day")
+            .font(.system(size: 16, weight: .semibold))
+          Text(value == 1 ? "A single daily check-in." : "Track a few gentle wins through the day.")
+            .font(.caption)
+            .foregroundStyle(.secondary)
+        }
+        Spacer()
+        Image(systemName: selectedTargetCount == value ? "checkmark.circle.fill" : "circle")
+          .font(.system(size: 20, weight: .semibold))
+          .foregroundStyle(selectedTargetCount == value ? effectiveColor : .secondary)
+      }
+      .padding(16)
+      .frame(maxWidth: .infinity)
+      .background(selectedTargetCount == value ? effectiveColor.opacity(0.16) : .clear)
+      .clipShape(RoundedRectangle(cornerRadius: 16))
+      .contentShape(Rectangle())
+      .proudlyGlass(cornerRadius: 16)
+    }
+    .buttonStyle(.plain)
+  }
+
+  private var pickerIconButton: some View {
+    Button {
+      isSFSymbolPickerPresented = true
+      Haptics.selection()
+    } label: {
+      ZStack {
+        Circle()
+          .fill(isCustomIcon ? effectiveColor : Color.gray.opacity(0.15))
+          .frame(width: 52, height: 52)
+
+        if isCustomIcon, let emoji = selectedIcon.firstHabitEmoji {
+          Text(emoji)
+            .font(.system(size: 26))
+        } else if isCustomIcon {
+          Image(systemName: selectedIcon)
+            .font(.system(size: 20, weight: .semibold))
+            .foregroundStyle(.white)
+        } else {
+          Image(systemName: "square.grid.2x2")
+            .font(.system(size: 18, weight: .medium))
+            .foregroundStyle(.gray)
+        }
+      }
+      .animation(.spring(response: 0.25), value: selectedIcon)
+    }
+    .buttonStyle(.plain)
+    .accessibilityLabel(isCustomIcon ? "Edit selected custom icon" : "Open icon picker")
+  }
+
+  private func iconBubble(icon: String, isSelected: Bool) -> some View {
+    ZStack {
+      Circle()
+        .fill(isSelected ? effectiveColor : effectiveColor.opacity(0.12))
+        .frame(width: 52, height: 52)
+      Image(systemName: icon)
+        .font(.system(size: 20, weight: .semibold))
+        .foregroundStyle(isSelected ? .white : effectiveColor)
+    }
+    .animation(.spring(response: 0.25), value: selectedIcon)
+  }
+
+  private func reminderIcon(for mode: HabitReminderMode) -> String {
+    switch mode {
+    case .none:
+      return "bell.slash"
+    case .basedOnTarget:
+      return "bell.badge"
+    case .customFirstTime:
+      return "clock"
+    }
+  }
+
+  private func saveHabit() async {
+    let remindersRequested = reminderMode != .none
+    var remindersEnabled = false
+    var savedReminderTimes: [String] = []
+
+    if remindersRequested {
+      let granted = await NotificationManager.shared.requestAuthorizationIfNeeded()
+      if granted {
+        remindersEnabled = true
+        savedReminderTimes = reminderTimes
+      } else {
+        permissionMessage = "No worries. You can enable reminders later in Settings."
+      }
+    }
+
+    isSaving = true
+
     let savedHabit = Habit(
       id: habit?.id ?? UUID(),
       name: habitName.trimmingCharacters(in: .whitespacesAndNewlines),
@@ -349,11 +534,24 @@ struct HabitFormView: View {
       streak: habit?.streak ?? 0,
       bestStreak: habit?.bestStreak ?? 0,
       completedDates: habit?.completedDates ?? [],
+      completionCountsByDate: habit?.completionCountsByDate ?? [:],
       note: habitDescription.trimmingCharacters(in: .whitespacesAndNewlines),
-      reminder: dailyReminderEnabled ? Self.reminderString(from: reminderTime) : nil
+      dailyTargetCount: effectiveDailyTargetCount,
+      completedCountToday: habit?.completedCountToday ?? 0,
+      remindersEnabled: remindersEnabled,
+      reminderTimes: savedReminderTimes
     )
+
     onSave(savedHabit)
+    isSaving = false
     dismiss()
+  }
+
+  private static func resolveReminderMode(for habit: Habit?) -> HabitReminderMode {
+    guard let habit, habit.remindersEnabled else { return .none }
+
+    let defaultTimes = NotificationManager.defaultReminderTimes(for: habit.dailyTargetCount)
+    return habit.reminderTimes == defaultTimes ? .basedOnTarget : .customFirstTime
   }
 
   private static func colorIndex(for color: Color?, options: [Color]) -> Int {
@@ -367,26 +565,6 @@ struct HabitFormView: View {
       }
     }
     return -1
-  }
-
-  private static func reminderDate(from reminder: String?) -> Date {
-    guard let reminder else { return defaultReminderDate }
-    let formatter = DateFormatter()
-    formatter.dateFormat = "h:mm a"
-    return formatter.date(from: reminder) ?? defaultReminderDate
-  }
-
-  private static func reminderString(from date: Date) -> String {
-    let formatter = DateFormatter()
-    formatter.dateFormat = "h:mm a"
-    return formatter.string(from: date)
-  }
-
-  private static var defaultReminderDate: Date {
-    var components = Calendar.current.dateComponents([.year, .month, .day], from: .now)
-    components.hour = 9
-    components.minute = 0
-    return Calendar.current.date(from: components) ?? .now
   }
 }
 

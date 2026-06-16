@@ -1,0 +1,382 @@
+{
+  "/Users/arnoldfederis/Swift/proudly/apps/ios/Proudly/Assets.xcassets/AccentColor.colorset/Contents.json": {
+    "mtime": 1781205116.5662646,
+    "ast_hash": "a246e17ea3d982db2166b82e52156473",
+    "semantic_hash": "a246e17ea3d982db2166b82e52156473"
+  },
+  "/Users/arnoldfederis/Swift/proudly/apps/ios/Proudly/Assets.xcassets/AppIcon.appiconset/Contents.json": {
+    "mtime": 1780949250.399486,
+    "ast_hash": "cbe75704b2680422c4156009a528e292",
+    "semantic_hash": "cbe75704b2680422c4156009a528e292"
+  },
+  "/Users/arnoldfederis/Swift/proudly/apps/ios/Proudly/Assets.xcassets/Contents.json": {
+    "mtime": 1780949249.6182113,
+    "ast_hash": "9deb2ada1cc834bbebf8bbad9c8978a1",
+    "semantic_hash": "9deb2ada1cc834bbebf8bbad9c8978a1"
+  },
+  "/Users/arnoldfederis/Swift/proudly/apps/ios/Proudly/ContentView.swift": {
+    "mtime": 1781221882.9086885,
+    "ast_hash": "682b33e9b3f676e9ae751365bb524186",
+    "semantic_hash": "682b33e9b3f676e9ae751365bb524186"
+  },
+  "/Users/arnoldfederis/Swift/proudly/apps/ios/Proudly/Item.swift": {
+    "mtime": 1781221882.900926,
+    "ast_hash": "d091a719ffa6d7df59303b854aa9cfe1",
+    "semantic_hash": "d091a719ffa6d7df59303b854aa9cfe1"
+  },
+  "/Users/arnoldfederis/Swift/proudly/apps/ios/Proudly/Modules/Habits/Habit.swift": {
+    "mtime": 1781488970.4757183,
+    "ast_hash": "a40b34806fe10273f32b48df138e4ed6",
+    "semantic_hash": "a40b34806fe10273f32b48df138e4ed6"
+  },
+  "/Users/arnoldfederis/Swift/proudly/apps/ios/Proudly/Modules/Habits/HabitDetailView.swift": {
+    "mtime": 1781499889.6796577,
+    "ast_hash": "b55fc67be200ef213bb5a8254f781108",
+    "semantic_hash": "b55fc67be200ef213bb5a8254f781108"
+  },
+  "/Users/arnoldfederis/Swift/proudly/apps/ios/Proudly/Modules/Habits/HabitFormView.swift": {
+    "mtime": 1781488970.478061,
+    "ast_hash": "aa84be074653b2ea4d0ad0da15a3ad3d",
+    "semantic_hash": "aa84be074653b2ea4d0ad0da15a3ad3d"
+  },
+  "/Users/arnoldfederis/Swift/proudly/apps/ios/Proudly/Modules/Habits/HabitsView.swift": {
+    "mtime": 1781498411.413236,
+    "ast_hash": "7ddbddf6b4a286b142d1a2b1c9f1198f",
+    "semantic_hash": "7ddbddf6b4a286b142d1a2b1c9f1198f"
+  },
+  "/Users/arnoldfederis/Swift/proudly/apps/ios/Proudly/Modules/Habits/HabitsViewModel.swift": {
+    "mtime": 1781483694.1719348,
+    "ast_hash": "2efa67aee4e61cbac43b8542de1a027d",
+    "semantic_hash": "2efa67aee4e61cbac43b8542de1a027d"
+  },
+  "/Users/arnoldfederis/Swift/proudly/apps/ios/Proudly/Modules/Home/HomeView.swift": {
+    "mtime": 1781482384.8935273,
+    "ast_hash": "a0268db35e9fd0a28a01ee5ab9ff0c85",
+    "semantic_hash": "a0268db35e9fd0a28a01ee5ab9ff0c85"
+  },
+  "/Users/arnoldfederis/Swift/proudly/apps/ios/Proudly/Modules/Insights/InsightsView.swift": {
+    "mtime": 1781499856.7550008,
+    "ast_hash": "3bc48f8391a5e7e7127781ea9271f4bd",
+    "semantic_hash": "3bc48f8391a5e7e7127781ea9271f4bd"
+  },
+  "/Users/arnoldfederis/Swift/proudly/apps/ios/Proudly/Modules/Insights/InsightsViewModel.swift": {
+    "mtime": 1781499798.0859926,
+    "ast_hash": "cbc220c3e5f1e658608d96f5db1d4160",
+    "semantic_hash": "cbc220c3e5f1e658608d96f5db1d4160"
+  },
+  "/Users/arnoldfederis/Swift/proudly/apps/ios/Proudly/Modules/Onboarding/OnboardingView.swift": {
+    "mtime": 1781221882.9084003,
+    "ast_hash": "0734ec47ac816187a17e6697db8acb40",
+    "semantic_hash": "0734ec47ac816187a17e6697db8acb40"
+  },
+  "/Users/arnoldfederis/Swift/proudly/apps/ios/Proudly/Modules/Paywall/ProudlyPlusView.swift": {
+    "mtime": 1781536794.6984043,
+    "ast_hash": "b6583bdf800a8c0541c284e6118840e5",
+    "semantic_hash": "b6583bdf800a8c0541c284e6118840e5"
+  },
+  "/Users/arnoldfederis/Swift/proudly/apps/ios/Proudly/Modules/Profile/ProfileView.swift": {
+    "mtime": 1781499836.1096122,
+    "ast_hash": "ca4ec0bc75c239c8fcb61b9d98bfcc13",
+    "semantic_hash": "ca4ec0bc75c239c8fcb61b9d98bfcc13"
+  },
+  "/Users/arnoldfederis/Swift/proudly/apps/ios/Proudly/Modules/Profile/ProfileViewModel.swift": {
+    "mtime": 1781499772.3495412,
+    "ast_hash": "e3b5e461bb5ab43f02957ec37518a6f5",
+    "semantic_hash": "e3b5e461bb5ab43f02957ec37518a6f5"
+  },
+  "/Users/arnoldfederis/Swift/proudly/apps/ios/Proudly/Modules/ProudMoments/ProudMoment.swift": {
+    "mtime": 1781486165.8130662,
+    "ast_hash": "2dea23a2d61a53382b3759a393e2e61e",
+    "semantic_hash": "2dea23a2d61a53382b3759a393e2e61e"
+  },
+  "/Users/arnoldfederis/Swift/proudly/apps/ios/Proudly/Modules/ProudMoments/ProudMomentsView.swift": {
+    "mtime": 1781488970.4784687,
+    "ast_hash": "0dd14cc932f95461b59e4c6c4b652a68",
+    "semantic_hash": "0dd14cc932f95461b59e4c6c4b652a68"
+  },
+  "/Users/arnoldfederis/Swift/proudly/apps/ios/Proudly/Modules/Theme/ThemeView.swift": {
+    "mtime": 1781538371.2012331,
+    "ast_hash": "298b70bf35e57c524a8491f61d6ee386",
+    "semantic_hash": "298b70bf35e57c524a8491f61d6ee386"
+  },
+  "/Users/arnoldfederis/Swift/proudly/apps/ios/Proudly/Modules/Theme/ThemeViewModel.swift": {
+    "mtime": 1781538370.9378107,
+    "ast_hash": "ec28ece653142395ca3fec1dda5dbee4",
+    "semantic_hash": "ec28ece653142395ca3fec1dda5dbee4"
+  },
+  "/Users/arnoldfederis/Swift/proudly/apps/ios/Proudly/Modules/Today/TodayView.swift": {
+    "mtime": 1781488970.4767206,
+    "ast_hash": "bca5654f08469678dc5e1001fa8cec7f",
+    "semantic_hash": "bca5654f08469678dc5e1001fa8cec7f"
+  },
+  "/Users/arnoldfederis/Swift/proudly/apps/ios/Proudly/Modules/Today/TodayViewModel.swift": {
+    "mtime": 1781481806.0341501,
+    "ast_hash": "67a17edb60d1676dee5d000f56b168b4",
+    "semantic_hash": "67a17edb60d1676dee5d000f56b168b4"
+  },
+  "/Users/arnoldfederis/Swift/proudly/apps/ios/Proudly/ProudlyApp.swift": {
+    "mtime": 1781537588.634128,
+    "ast_hash": "fa6adddf06c5add41bc7343a269c6a6f",
+    "semantic_hash": "fa6adddf06c5add41bc7343a269c6a6f"
+  },
+  "/Users/arnoldfederis/Swift/proudly/apps/ios/Proudly/Shared/Config/FeatureFlags.swift": {
+    "mtime": 1781299920.5362687,
+    "ast_hash": "3b7e92b744ddbb0e0a3b141764dc980c",
+    "semantic_hash": "3b7e92b744ddbb0e0a3b141764dc980c"
+  },
+  "/Users/arnoldfederis/Swift/proudly/apps/ios/Proudly/Shared/Data/HabitRepository.swift": {
+    "mtime": 1781488970.4787729,
+    "ast_hash": "8e39c29ab5c691abb9f370c0454f44ae",
+    "semantic_hash": "8e39c29ab5c691abb9f370c0454f44ae"
+  },
+  "/Users/arnoldfederis/Swift/proudly/apps/ios/Proudly/Shared/Data/PersistentHabit.swift": {
+    "mtime": 1781483694.1081088,
+    "ast_hash": "d72dcd3d876ee7e4be141ea2c74f0bcc",
+    "semantic_hash": "d72dcd3d876ee7e4be141ea2c74f0bcc"
+  },
+  "/Users/arnoldfederis/Swift/proudly/apps/ios/Proudly/Shared/Data/PersistentHabitCompletion.swift": {
+    "mtime": 1781483694.106568,
+    "ast_hash": "610d9aef53360d3862ebd77f911bde79",
+    "semantic_hash": "610d9aef53360d3862ebd77f911bde79"
+  },
+  "/Users/arnoldfederis/Swift/proudly/apps/ios/Proudly/Shared/Design/ColorExtensions.swift": {
+    "mtime": 1781483694.0891674,
+    "ast_hash": "097873a724ff42dd5458bafeb99b3370",
+    "semantic_hash": "097873a724ff42dd5458bafeb99b3370"
+  },
+  "/Users/arnoldfederis/Swift/proudly/apps/ios/Proudly/Shared/Design/FloatingActionButton.swift": {
+    "mtime": 1781482650.4402437,
+    "ast_hash": "9c9d25fda2d14efc28b98c950c47702c",
+    "semantic_hash": "9c9d25fda2d14efc28b98c950c47702c"
+  },
+  "/Users/arnoldfederis/Swift/proudly/apps/ios/Proudly/Shared/Design/GlassModifier.swift": {
+    "mtime": 1781223856.5895228,
+    "ast_hash": "cecab00475265c84e487a7c25b16ac6d",
+    "semantic_hash": "cecab00475265c84e487a7c25b16ac6d"
+  },
+  "/Users/arnoldfederis/Swift/proudly/apps/ios/Proudly/Shared/Design/ProudlyAppTheme.swift": {
+    "mtime": 1781281829.677393,
+    "ast_hash": "d2f40ee57497256691b8abfdb85f6ed1",
+    "semantic_hash": "d2f40ee57497256691b8abfdb85f6ed1"
+  },
+  "/Users/arnoldfederis/Swift/proudly/apps/ios/Proudly/Shared/Design/ProudlyTheme.swift": {
+    "mtime": 1781221882.902054,
+    "ast_hash": "9c91e5fc633363edefa93a42367a7ec2",
+    "semantic_hash": "9c91e5fc633363edefa93a42367a7ec2"
+  },
+  "/Users/arnoldfederis/Swift/proudly/apps/ios/Proudly/Shared/Design/SystemAppearance.swift": {
+    "mtime": 1781488300.894438,
+    "ast_hash": "0a743d13f5e67ab8f913253f1658455f",
+    "semantic_hash": "0a743d13f5e67ab8f913253f1658455f"
+  },
+  "/Users/arnoldfederis/Swift/proudly/apps/ios/Proudly/Shared/Design/ThemedGlassCard.swift": {
+    "mtime": 1781223856.5828264,
+    "ast_hash": "cb48c1f64fd31e22da4d52837578bc2b",
+    "semantic_hash": "cb48c1f64fd31e22da4d52837578bc2b"
+  },
+  "/Users/arnoldfederis/Swift/proudly/apps/ios/Proudly/Shared/RevenueCat/RevenueCatConfig.swift": {
+    "mtime": 1781536786.656827,
+    "ast_hash": "834a65274a003b56ee5ec9910fc4df57",
+    "semantic_hash": "834a65274a003b56ee5ec9910fc4df57"
+  },
+  "/Users/arnoldfederis/Swift/proudly/apps/ios/Proudly/Shared/RevenueCat/SubscriptionStore.swift": {
+    "mtime": 1781483694.1054754,
+    "ast_hash": "0469c35a8b2c56a5a17ba0a11833b7ec",
+    "semantic_hash": "0469c35a8b2c56a5a17ba0a11833b7ec"
+  },
+  "/Users/arnoldfederis/Swift/proudly/apps/ios/Proudly/Shared/Utils/Haptics.swift": {
+    "mtime": 1781221882.902624,
+    "ast_hash": "27da7ed3e0fe0c3cfec96a9c6e4b229f",
+    "semantic_hash": "27da7ed3e0fe0c3cfec96a9c6e4b229f"
+  },
+  "/Users/arnoldfederis/Swift/proudly/apps/ios/package.json": {
+    "mtime": 1779196764.4292493,
+    "ast_hash": "e49de6a8c56c1db1d4bbd06ede0fc031",
+    "semantic_hash": "e49de6a8c56c1db1d4bbd06ede0fc031"
+  },
+  "/Users/arnoldfederis/Swift/proudly/apps/site/app/layout.tsx": {
+    "mtime": 1781205116.57158,
+    "ast_hash": "8299f11eeccf07fae56f54b05e24904f",
+    "semantic_hash": "8299f11eeccf07fae56f54b05e24904f"
+  },
+  "/Users/arnoldfederis/Swift/proudly/apps/site/app/page.tsx": {
+    "mtime": 1781205116.5718856,
+    "ast_hash": "b8eb9a2d9fabd20a24a4fe1a2dedc057",
+    "semantic_hash": "b8eb9a2d9fabd20a24a4fe1a2dedc057"
+  },
+  "/Users/arnoldfederis/Swift/proudly/apps/site/next-env.d.ts": {
+    "mtime": 1780951692.8417883,
+    "ast_hash": "d0f8375ae1199dc7acd3977fc33b78b8",
+    "semantic_hash": "d0f8375ae1199dc7acd3977fc33b78b8"
+  },
+  "/Users/arnoldfederis/Swift/proudly/apps/site/next.config.ts": {
+    "mtime": 1780951482.5373533,
+    "ast_hash": "073c476be067d6d4649b355483ee2690",
+    "semantic_hash": "073c476be067d6d4649b355483ee2690"
+  },
+  "/Users/arnoldfederis/Swift/proudly/apps/site/package.json": {
+    "mtime": 1780951685.6367764,
+    "ast_hash": "52b8928c714e8b065b5cd50e6b178317",
+    "semantic_hash": "52b8928c714e8b065b5cd50e6b178317"
+  },
+  "/Users/arnoldfederis/Swift/proudly/apps/site/postcss.config.mjs": {
+    "mtime": 1780951482.534847,
+    "ast_hash": "239f3ebf717465dc636818a1a619398d",
+    "semantic_hash": "239f3ebf717465dc636818a1a619398d"
+  },
+  "/Users/arnoldfederis/Swift/proudly/apps/site/tsconfig.json": {
+    "mtime": 1780951482.537689,
+    "ast_hash": "02fc19ad21338c2ab820a70136310db4",
+    "semantic_hash": "02fc19ad21338c2ab820a70136310db4"
+  },
+  "/Users/arnoldfederis/Swift/proudly/biome.json": {
+    "mtime": 1779194783.1668458,
+    "ast_hash": "7167713a66c2ac46c12f1d0a469697fc",
+    "semantic_hash": "7167713a66c2ac46c12f1d0a469697fc"
+  },
+  "/Users/arnoldfederis/Swift/proudly/devbox.json": {
+    "mtime": 1780949743.3317811,
+    "ast_hash": "1c8f39cc84eea23d4397c2bc39ae2d23",
+    "semantic_hash": "1c8f39cc84eea23d4397c2bc39ae2d23"
+  },
+  "/Users/arnoldfederis/Swift/proudly/package.json": {
+    "mtime": 1780949939.8699317,
+    "ast_hash": "18c8347972434069166c88fa5bfb8fc3",
+    "semantic_hash": "18c8347972434069166c88fa5bfb8fc3"
+  },
+  "/Users/arnoldfederis/Swift/proudly/tailwind.config.ts": {
+    "mtime": 1780096531.5621817,
+    "ast_hash": "9f63ccd2e76c3a769778e41c692e6f48",
+    "semantic_hash": "9f63ccd2e76c3a769778e41c692e6f48"
+  },
+  "/Users/arnoldfederis/Swift/proudly/tools/nix/scripts/bunadd.sh": {
+    "mtime": 1764963079.84,
+    "ast_hash": "a9ea579b7b1e647b1d94947d2a3aefca",
+    "semantic_hash": "a9ea579b7b1e647b1d94947d2a3aefca"
+  },
+  "/Users/arnoldfederis/Swift/proudly/tools/nix/scripts/bundevadd.sh": {
+    "mtime": 1764963079.84,
+    "ast_hash": "9f1b6b17ff05bc2d1653e84fd63cf8d8",
+    "semantic_hash": "9f1b6b17ff05bc2d1653e84fd63cf8d8"
+  },
+  "/Users/arnoldfederis/Swift/proudly/tools/nix/scripts/bunrm.sh": {
+    "mtime": 1764963079.84,
+    "ast_hash": "3796d34dfb95c684969baa69b2d3f4ba",
+    "semantic_hash": "3796d34dfb95c684969baa69b2d3f4ba"
+  },
+  "/Users/arnoldfederis/Swift/proudly/tools/nix/scripts/cert-gen.sh": {
+    "mtime": 1780953709.3360589,
+    "ast_hash": "3eedec5ba2b107d9fdad375081b217d6",
+    "semantic_hash": "3eedec5ba2b107d9fdad375081b217d6"
+  },
+  "/Users/arnoldfederis/Swift/proudly/tools/nix/scripts/dev.sh": {
+    "mtime": 1779194246.4521463,
+    "ast_hash": "ec2fddb4815e2cebda1c136d779da445",
+    "semantic_hash": "ec2fddb4815e2cebda1c136d779da445"
+  },
+  "/Users/arnoldfederis/Swift/proudly/tools/nix/scripts/env-decrypt.sh": {
+    "mtime": 1764963079.84,
+    "ast_hash": "6b8736baa1ef0a4761e7e8524d9d1d0a",
+    "semantic_hash": "6b8736baa1ef0a4761e7e8524d9d1d0a"
+  },
+  "/Users/arnoldfederis/Swift/proudly/tools/nix/scripts/env-encrypt.sh": {
+    "mtime": 1764963079.84,
+    "ast_hash": "9fb0c03013aba78ecf2436346721ff6c",
+    "semantic_hash": "9fb0c03013aba78ecf2436346721ff6c"
+  },
+  "/Users/arnoldfederis/Swift/proudly/tools/nix/scripts/env-gen-key.sh": {
+    "mtime": 1764963079.84,
+    "ast_hash": "1616cdc2bb3f1343f475d148f0c80d9c",
+    "semantic_hash": "1616cdc2bb3f1343f475d148f0c80d9c"
+  },
+  "/Users/arnoldfederis/Swift/proudly/tools/nix/scripts/env-sync.sh": {
+    "mtime": 1764963079.84,
+    "ast_hash": "f5aabcf49e55f5e79e22fd001f326a88",
+    "semantic_hash": "f5aabcf49e55f5e79e22fd001f326a88"
+  },
+  "/Users/arnoldfederis/Swift/proudly/tools/nix/scripts/init-local.sh": {
+    "mtime": 1764963079.84,
+    "ast_hash": "0dfd5473e12618046d3e4cab952be470",
+    "semantic_hash": "0dfd5473e12618046d3e4cab952be470"
+  },
+  "/Users/arnoldfederis/Swift/proudly/tools/nix/scripts/remove-hosts.sh": {
+    "mtime": 1780953709.3351142,
+    "ast_hash": "79570e850035d6764097e2ef14a0f19d",
+    "semantic_hash": "79570e850035d6764097e2ef14a0f19d"
+  },
+  "/Users/arnoldfederis/Swift/proudly/tools/nix/scripts/reset-local.sh": {
+    "mtime": 1779192909.7145672,
+    "ast_hash": "0721f4337d161a074f3c4df46d7a48bb",
+    "semantic_hash": "0721f4337d161a074f3c4df46d7a48bb"
+  },
+  "/Users/arnoldfederis/Swift/proudly/tools/nix/scripts/sync-hosts.sh": {
+    "mtime": 1780953709.333615,
+    "ast_hash": "886cbf74b45fc9e9f48679f0c2fe52c1",
+    "semantic_hash": "886cbf74b45fc9e9f48679f0c2fe52c1"
+  },
+  "/Users/arnoldfederis/Swift/proudly/tools/nix/scripts/uiadd.sh": {
+    "mtime": 1764965696.68,
+    "ast_hash": "76ff8c69be2f90750874c02c4aedfbdc",
+    "semantic_hash": "76ff8c69be2f90750874c02c4aedfbdc"
+  },
+  "/Users/arnoldfederis/Swift/proudly/turbo.json": {
+    "mtime": 1780353987.1765103,
+    "ast_hash": "917935a5a1bb890fc34b8066b0dc7c75",
+    "semantic_hash": "917935a5a1bb890fc34b8066b0dc7c75"
+  },
+  "/Users/arnoldfederis/Swift/proudly/.sops.yaml": {
+    "mtime": 1772470075.1350868,
+    "ast_hash": "6b09957a0313538c7e287f84406e7f9a",
+    "semantic_hash": "6b09957a0313538c7e287f84406e7f9a"
+  },
+  "/Users/arnoldfederis/Swift/proudly/README.md": {
+    "mtime": 1780949917.914875,
+    "ast_hash": "b03c7ae6c26936842ec7957cc4616562",
+    "semantic_hash": "b03c7ae6c26936842ec7957cc4616562"
+  },
+  "/Users/arnoldfederis/Swift/proudly/apps/site/README.md": {
+    "mtime": 1780951482.5343685,
+    "ast_hash": "f15aaa42d5d299d091b1171097ea56ad",
+    "semantic_hash": "f15aaa42d5d299d091b1171097ea56ad"
+  },
+  "/Users/arnoldfederis/Swift/proudly/process-compose.yaml": {
+    "mtime": 1779194292.7407694,
+    "ast_hash": "2d60c25402e112818756fbdecb9df2ee",
+    "semantic_hash": "2d60c25402e112818756fbdecb9df2ee"
+  },
+  "/Users/arnoldfederis/Swift/proudly/tools/traefik/config.yaml": {
+    "mtime": 1780951917.5252576,
+    "ast_hash": "5054cb33312005be4d2210fb5863b567",
+    "semantic_hash": "5054cb33312005be4d2210fb5863b567"
+  },
+  "/Users/arnoldfederis/Swift/proudly/tools/traefik/traefik.yaml": {
+    "mtime": 1779195234.5583937,
+    "ast_hash": "69ea7f4ae32572c9f7dc6dbe165b3673",
+    "semantic_hash": "69ea7f4ae32572c9f7dc6dbe165b3673"
+  },
+  "/Users/arnoldfederis/Swift/proudly/apps/site/public/file.svg": {
+    "mtime": 1780951482.536335,
+    "ast_hash": "d09f95206c3fa0bb9bd9fefabfd0ea71",
+    "semantic_hash": "d09f95206c3fa0bb9bd9fefabfd0ea71"
+  },
+  "/Users/arnoldfederis/Swift/proudly/apps/site/public/globe.svg": {
+    "mtime": 1780951482.5343633,
+    "ast_hash": "2aaafa6a49b6563925fe440891e32717",
+    "semantic_hash": "2aaafa6a49b6563925fe440891e32717"
+  },
+  "/Users/arnoldfederis/Swift/proudly/apps/site/public/next.svg": {
+    "mtime": 1780951482.536188,
+    "ast_hash": "8e061864f388b47f33a1c3780831193e",
+    "semantic_hash": "8e061864f388b47f33a1c3780831193e"
+  },
+  "/Users/arnoldfederis/Swift/proudly/apps/site/public/vercel.svg": {
+    "mtime": 1780951482.5361009,
+    "ast_hash": "c0af2f507b369b085b35ef4bbe3bcf1e",
+    "semantic_hash": "c0af2f507b369b085b35ef4bbe3bcf1e"
+  },
+  "/Users/arnoldfederis/Swift/proudly/apps/site/public/window.svg": {
+    "mtime": 1780951482.5362515,
+    "ast_hash": "a2760511c65806022ad20adf74370ff3",
+    "semantic_hash": "a2760511c65806022ad20adf74370ff3"
+  }
+}

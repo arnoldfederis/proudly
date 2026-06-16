@@ -13,6 +13,8 @@ struct HabitsView: View {
   @Environment(HabitRepository.self) private var repository
   @State private var viewModel = HabitsViewModel()
   @State private var selectedHabit: Habit?
+  @State private var habitPendingArchive: Habit?
+  @State private var isArchiveConfirmationPresented = false
   @State private var isAddPresented: Bool = false
   @State private var isPaywallPresented: Bool = false
 
@@ -47,6 +49,14 @@ struct HabitsView: View {
                       HabitCardView(habit: habit)
                     }
                     .buttonStyle(.plain)
+                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                      Button(role: .destructive) {
+                        habitPendingArchive = habit
+                        isArchiveConfirmationPresented = true
+                      } label: {
+                        Label("Archive", systemImage: "archivebox.fill")
+                      }
+                    }
                   }
                 }
               }
@@ -82,6 +92,19 @@ struct HabitsView: View {
       }
       .sheet(isPresented: $isPaywallPresented) {
         ProudlyPlusView()
+      }
+      .confirmationDialog(
+        "Archive habit?",
+        isPresented: $isArchiveConfirmationPresented,
+        titleVisibility: .visible
+      ) {
+        Button("Archive", role: .destructive) {
+          guard let habitPendingArchive else { return }
+          archiveHabit(habitPendingArchive)
+        }
+      } message: {
+        Text(
+          "\(habitPendingArchive?.name ?? "This habit") will be removed from your active habits.")
       }
     }
   }
@@ -167,6 +190,12 @@ struct HabitsView: View {
       isAddPresented = true
     }
   }
+
+  private func archiveHabit(_ habit: Habit) {
+    Haptics.impact(.medium)
+    repository.archiveHabit(habit)
+    habitPendingArchive = nil
+  }
 }
 
 struct HabitIconView: View {
@@ -176,7 +205,7 @@ struct HabitIconView: View {
   let circleSize: CGFloat
   var backgroundOpacity: Double = 0.15
 
-  private var isSFSymbol: Bool { icon.contains(".") }
+  private var isSFSymbol: Bool { icon.isHabitSFSymbol }
 
   var body: some View {
     ZStack {
@@ -223,9 +252,10 @@ struct HabitCardView: View {
           Text("\(habit.streak)")
             .font(.system(size: 16, weight: .bold))
         }
-        Text(habit.streak.proudlyDayUnit)
+        Text(habit.dailyTargetCount == 1 ? habit.streak.proudlyDayUnit : habit.todayProgressLabel)
           .font(.caption2)
           .foregroundStyle(.secondary)
+          .contentTransition(.numericText())
       }
     }
     .frame(maxWidth: .infinity, alignment: .leading)

@@ -106,7 +106,19 @@ struct TodayView: View {
         HabitRowView(
           habit: habit,
           onToggle: {
-            if !habit.isCompletedToday { Haptics.notification(.success) }
+            let nextCount =
+              habit.isCompletedToday
+              ? max(habit.completedCountToday - 1, 0)
+              : min(habit.completedCountToday + 1, habit.dailyTargetCount)
+            let reachesCompletion = nextCount >= habit.dailyTargetCount
+
+            if habit.isCompletedToday {
+              Haptics.impact(.soft)
+            } else if reachesCompletion {
+              Haptics.notification(.success)
+            } else {
+              Haptics.selection()
+            }
             repository.toggleCompletion(for: habit)
           },
           onNavigate: { selectedHabit = habit }
@@ -170,37 +182,81 @@ struct HabitRowView: View {
           Text(habit.name)
             .font(.system(size: 16, weight: .semibold))
             .foregroundStyle(.primary)
-          HStack(spacing: 4) {
-            Image(systemName: "flame.fill")
-              .font(.caption2)
-              .foregroundStyle(ProudlyTheme.pink)
-            Text(habit.streakLabel)
-              .font(.caption)
-              .foregroundStyle(.secondary)
+          if habit.dailyTargetCount == 1 {
+            HStack(spacing: 4) {
+              Image(systemName: "flame.fill")
+                .font(.caption2)
+                .foregroundStyle(ProudlyTheme.pink)
+              Text(habit.streakLabel)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            }
+          } else {
+            VStack(alignment: .leading, spacing: 2) {
+              HStack(spacing: 4) {
+                Image(systemName: "flame.fill")
+                  .font(.caption2)
+                  .foregroundStyle(ProudlyTheme.pink)
+                Text(habit.streakLabel)
+                  .font(.caption)
+                  .foregroundStyle(.secondary)
+              }
+              Text("\(habit.completedCountToday) of \(habit.dailyTargetCount) completed today")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .contentTransition(.numericText())
+            }
           }
         }
 
         Spacer()
 
         Button(action: onToggle) {
-          ZStack {
-            Circle()
-              .strokeBorder(
-                habit.isCompletedToday ? habit.color : Color.gray.opacity(0.35),
-                lineWidth: 2.5
-              )
-              .frame(width: 34, height: 34)
-
-            if habit.isCompletedToday {
+          VStack(alignment: .trailing, spacing: 4) {
+            ZStack {
               Circle()
-                .fill(habit.color)
-                .frame(width: 34, height: 34)
-              Image(systemName: "checkmark")
-                .font(.system(size: 13, weight: .bold))
-                .foregroundStyle(.white)
+                .stroke(Color.gray.opacity(0.18), lineWidth: 4)
+                .frame(width: 40, height: 40)
+
+              Circle()
+                .trim(from: 0, to: habit.completionProgressToday)
+                .stroke(
+                  habit.color,
+                  style: StrokeStyle(lineWidth: 4, lineCap: .round)
+                )
+                .rotationEffect(.degrees(-90))
+                .frame(width: 40, height: 40)
+                .animation(
+                  .spring(response: 0.32, dampingFraction: 0.78),
+                  value: habit.completionProgressToday)
+
+              if habit.isCompletedToday {
+                Circle()
+                  .fill(habit.color)
+                  .frame(width: 30, height: 30)
+                Image(systemName: "checkmark")
+                  .font(.system(size: 13, weight: .bold))
+                  .foregroundStyle(.white)
+                  .symbolEffect(.bounce, value: habit.completedCountToday)
+              } else if habit.dailyTargetCount == 1 {
+                Circle()
+                  .fill(Color.white.opacity(0.08))
+                  .frame(width: 30, height: 30)
+              } else {
+                Text(habit.todayProgressLabel)
+                  .font(.system(size: 9, weight: .bold))
+                  .foregroundStyle(.primary)
+                  .contentTransition(.numericText())
+              }
+            }
+
+            if habit.dailyTargetCount > 1 {
+              Text(habit.todayProgressPercentText)
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .contentTransition(.numericText())
             }
           }
-          .animation(.spring(response: 0.3, dampingFraction: 0.6), value: habit.isCompletedToday)
         }
         .buttonStyle(.plain)
       }

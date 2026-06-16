@@ -16,13 +16,31 @@ struct Habit: Identifiable {
   var streak: Int
   var bestStreak: Int
   var completedDates: Set<String>
+  var completionCountsByDate: [String: Int]
   var note: String
-  var reminder: String?
+  var dailyTargetCount: Int
+  var completedCountToday: Int
+  var remindersEnabled: Bool
+  var reminderTimes: [String]
 
   var isCompletedToday: Bool {
-    let formatter = DateFormatter()
-    formatter.dateFormat = "yyyy-MM-dd"
-    return completedDates.contains(formatter.string(from: Date()))
+    completedCountToday >= max(dailyTargetCount, 1)
+  }
+
+  var completionProgressToday: Double {
+    min(Double(completedCountToday) / Double(max(dailyTargetCount, 1)), 1)
+  }
+
+  var todayProgressLabel: String {
+    "\(completedCountToday)/\(max(dailyTargetCount, 1))"
+  }
+
+  var todayProgressPercentText: String {
+    "\(Int((completionProgressToday * 100).rounded()))%"
+  }
+
+  var reminder: String? {
+    reminderTimes.first
   }
 }
 
@@ -39,8 +57,12 @@ extension Habit: Hashable {
       && lhs.name == rhs.name
       && lhs.icon == rhs.icon
       && lhs.note == rhs.note
-      && lhs.reminder == rhs.reminder
+      && lhs.dailyTargetCount == rhs.dailyTargetCount
+      && lhs.completedCountToday == rhs.completedCountToday
+      && lhs.remindersEnabled == rhs.remindersEnabled
+      && lhs.reminderTimes == rhs.reminderTimes
       && lhs.completedDates == rhs.completedDates
+      && lhs.completionCountsByDate == rhs.completionCountsByDate
   }
 }
 
@@ -52,17 +74,35 @@ extension Habit {
     Habit(
       id: UUID(), name: "Drink water", icon: "drop.fill",
       color: ProudlyTheme.blue, streak: 7, bestStreak: 14,
-      completedDates: [], note: "Stay hydrated all day"
+      completedDates: [],
+      completionCountsByDate: [:],
+      note: "Stay hydrated all day",
+      dailyTargetCount: 1,
+      completedCountToday: 0,
+      remindersEnabled: false,
+      reminderTimes: []
     ),
     Habit(
       id: UUID(), name: "Walk 10 minutes", icon: "figure.walk",
       color: ProudlyTheme.mint, streak: 12, bestStreak: 18,
-      completedDates: [], note: "A short walk clears the mind"
+      completedDates: [],
+      completionCountsByDate: [:],
+      note: "A short walk clears the mind",
+      dailyTargetCount: 1,
+      completedCountToday: 0,
+      remindersEnabled: false,
+      reminderTimes: []
     ),
     Habit(
       id: UUID(), name: "Read 10 pages", icon: "book.fill",
       color: ProudlyTheme.purple, streak: 5, bestStreak: 21,
-      completedDates: [], note: "Feed your mind daily"
+      completedDates: [],
+      completionCountsByDate: [:],
+      note: "Feed your mind daily",
+      dailyTargetCount: 1,
+      completedCountToday: 0,
+      remindersEnabled: false,
+      reminderTimes: []
     ),
   ]
 }

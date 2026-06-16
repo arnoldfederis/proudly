@@ -12,11 +12,12 @@ struct ProfileView: View {
   @Environment(ThemeViewModel.self) private var theme
   @Environment(SubscriptionStore.self) private var subscriptionStore
   @Environment(HabitRepository.self) private var repository
-  @State private var viewModel = ProfileViewModel()
   @State private var showPaywall = false
+  @State private var showICloudAlert = false
   @State private var showThemeView = false
   @State private var showCustomerCenter = false
   @State private var navigateToProudMoments = false
+  @State private var navigateToReminders = false
 
   var body: some View {
     NavigationStack {
@@ -47,6 +48,9 @@ struct ProfileView: View {
       }
       .navigationDestination(isPresented: $navigateToProudMoments) {
         ProudMomentsView()
+      }
+      .navigationDestination(isPresented: $navigateToReminders) {
+        RemindersView()
       }
       .presentCustomerCenter(isPresented: $showCustomerCenter)
     }
@@ -128,29 +132,36 @@ struct ProfileView: View {
   private var settingsSection: some View {
     VStack(spacing: 0) {
       Button {
-        if !subscriptionStore.hasProudlyPlus {
-          showPaywall = true
-        }
-
-        viewModel.iCloudSyncEnabled.toggle()
+        showICloudAlert = true
       } label: {
         ProfileRow(icon: "icloud.fill", label: "iCloud Sync", color: ProudlyTheme.blue) {
-          if subscriptionStore.hasProudlyPlus {
-            Toggle("", isOn: $viewModel.iCloudSyncEnabled).labelsHidden()
-          } else {
-            PlusBadge()
-          }
+          Text("Coming soon")
+            .font(.subheadline)
+            .foregroundStyle(.secondary)
         }
       }
       .buttonStyle(.plain)
+      .alert("Coming soon", isPresented: $showICloudAlert) {
+        Button("OK") {}
+      } message: {
+        Text("iCloud sync is planned for a future update.")
+      }
 
       Divider().padding(.leading, 56).opacity(0.4)
 
       Button {
-        viewModel.remindersEnabled.toggle()
+        navigateToReminders = true
       } label: {
         ProfileRow(icon: "bell.fill", label: "Reminders", color: ProudlyTheme.pink) {
-          Toggle("", isOn: $viewModel.remindersEnabled).labelsHidden()
+          HStack(spacing: 6) {
+            Text(reminderSummary)
+              .font(.subheadline)
+              .foregroundStyle(.secondary)
+
+            Image(systemName: "chevron.right")
+              .font(.caption2)
+              .foregroundStyle(.tertiary)
+          }
         }
       }
       .buttonStyle(.plain)
@@ -237,6 +248,11 @@ struct ProfileView: View {
     let habitLabel = habitCount == 1 ? "habit" : "habits"
 
     return "\(habitCount) \(habitLabel) · \(longestStreak.proudlyStreakLabel)"
+  }
+
+  private var reminderSummary: String {
+    let count = repository.activeHabits.filter(\.remindersEnabled).count
+    return count == 0 ? "Off" : count == 1 ? "1 active" : "\(count) active"
   }
 
   private var legalSection: some View {

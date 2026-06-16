@@ -10,6 +10,7 @@ import SwiftUI
 
 struct InsightsView: View {
   @Environment(ThemeViewModel.self) private var theme
+  @Environment(HabitRepository.self) private var repository
   @State private var viewModel = InsightsViewModel()
 
   var body: some View {
@@ -30,6 +31,10 @@ struct InsightsView: View {
       }
       .navigationTitle("Insights")
       .navigationBarTitleDisplayMode(.large)
+    }
+    .onAppear { viewModel.update(habits: repository.activeHabits) }
+    .onChange(of: repository.activeHabits) { _, habits in
+      viewModel.update(habits: habits)
     }
   }
 
@@ -144,4 +149,5 @@ struct InsightStatCard: View {
 #Preview {
   InsightsView()
     .environment(ThemeViewModel())
+    .environment(HabitRepository.preview)
 }

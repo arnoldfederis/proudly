@@ -34,7 +34,6 @@ final class ThemeViewModel {
   }
 
   func select(_ theme: ProudlyAppTheme) {
-    guard canUse(theme) else { return }
     selectedTheme = theme
     UserDefaults.standard.set(theme.rawValue, forKey: Self.themeKey)
     Haptics.selection()

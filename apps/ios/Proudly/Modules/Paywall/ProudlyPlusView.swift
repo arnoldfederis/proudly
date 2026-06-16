@@ -17,6 +17,7 @@ struct ProudlyPlusView: View {
 
   @State private var showCustomerCenter = false
 
+  // V1 paywall rule: only list features that are functional in this app version.
   private let benefits: [ProudlyPlusBenefit] = [
     .init(
       icon: "infinity",
@@ -25,34 +26,22 @@ struct ProudlyPlusView: View {
       color: ProudlyTheme.purple
     ),
     .init(
-      icon: "icloud.fill",
-      title: "iCloud sync and backup",
-      description: "Keep your progress safe across devices.",
-      color: ProudlyTheme.blue
-    ),
-    .init(
-      icon: "chart.line.uptrend.xyaxis",
-      title: "Advanced insights",
-      description: "Understand your progress without pressure.",
-      color: ProudlyTheme.mint
-    ),
-    .init(
-      icon: "sparkles.rectangle.stack.fill",
-      title: "Weekly proud moments",
-      description: "Celebrate what you completed this week.",
-      color: ProudlyTheme.pink
-    ),
-    .init(
       icon: "paintpalette.fill",
       title: "Custom themes",
-      description: "Personalize Proudly with colors.",
+      description: "Personalize Proudly with curated themes that change the look and feel.",
       color: ProudlyTheme.purple
     ),
     .init(
-      icon: "square.grid.2x2.fill",
-      title: "Widgets later",
-      description: "See today's progress from your Home Screen.",
-      color: ProudlyTheme.blue
+      icon: "heart.fill",
+      title: "Proud Moments history",
+      description: "Look back at the wins you have completed.",
+      color: ProudlyTheme.pink
+    ),
+    .init(
+      icon: "chart.line.uptrend.xyaxis",
+      title: "Advanced progress insights",
+      description: "Understand your real habit progress without pressure.",
+      color: ProudlyTheme.mint
     ),
   ]
 
@@ -192,7 +181,7 @@ struct ProudlyPlusView: View {
         .foregroundStyle(.secondary)
 
         Text(
-          "Start with 3 free habits. Upgrade when you're ready to track more, sync your progress, and personalize your experience."
+          "Start with 3 free habits. Upgrade when you're ready to track more, personalize Proudly, and see deeper progress."
         )
         .font(.subheadline)
         .foregroundStyle(.secondary)
@@ -688,7 +677,7 @@ private struct SubscriptionPackageButton: View {
     }
     .buttonStyle(.plain)
     .disabled(isLoading)
-    .overlay(alignment: .topTrailing) {
+    .overlay(alignment: .center) {
       if isLoading {
         ProgressView()
           .padding(18)

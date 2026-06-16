@@ -36,6 +36,9 @@ struct ThemeView: View {
       }
     }
     .preferredColorScheme(theme.activeTheme == .midnightCalm ? .dark : SystemAppearance.colorScheme)
+    .onAppear {
+      theme.isPlusUser = subscriptionStore.hasProudlyPlus
+    }
   }
 
   private var themeSection: some View {
@@ -60,7 +63,7 @@ struct ThemeView: View {
   @ViewBuilder
   private func themeRow(_ appTheme: ProudlyAppTheme) -> some View {
     let isSelected = theme.selectedTheme == appTheme
-    let isLocked = appTheme.isPlusOnly && !theme.isPlusUser
+    let isLocked = appTheme.isPlusOnly && !subscriptionStore.hasProudlyPlus
 
     Button {
       if isLocked {

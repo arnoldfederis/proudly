@@ -10,6 +10,4 @@ import Observation
 
 @Observable
 final class ProfileViewModel {
-  var iCloudSyncEnabled: Bool = false
-  var remindersEnabled: Bool = true
 }

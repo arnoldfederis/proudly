@@ -15,6 +15,9 @@ final class PersistentHabit {
   var icon: String
   var colorHex: String
   var note: String
+  var dailyTargetCount: Int
+  var remindersEnabled: Bool
+  var reminderTimes: String
   var reminderHour: Int?
   var reminderMinute: Int?
   var createdAt: Date
@@ -30,6 +33,9 @@ final class PersistentHabit {
     icon: String,
     colorHex: String,
     note: String = "",
+    dailyTargetCount: Int = 1,
+    remindersEnabled: Bool = false,
+    reminderTimes: String = "",
     reminderHour: Int? = nil,
     reminderMinute: Int? = nil,
     createdAt: Date = .now,
@@ -41,6 +47,9 @@ final class PersistentHabit {
     self.icon = icon
     self.colorHex = colorHex
     self.note = note
+    self.dailyTargetCount = dailyTargetCount
+    self.remindersEnabled = remindersEnabled
+    self.reminderTimes = reminderTimes
     self.reminderHour = reminderHour
     self.reminderMinute = reminderMinute
     self.createdAt = createdAt

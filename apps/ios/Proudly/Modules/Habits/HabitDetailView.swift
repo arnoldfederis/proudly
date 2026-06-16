@@ -8,14 +8,15 @@
 import SwiftUI
 
 struct HabitDetailView: View {
+  @Environment(\.dismiss) private var dismiss
   @Environment(ThemeViewModel.self) private var theme
   @Environment(HabitRepository.self) private var repository
-  @Environment(SubscriptionStore.self) private var subscriptionStore
+
   @State private var habit: Habit
+  @State private var isEditPresented = false
+  @State private var isArchiveConfirmationPresented = false
+
   let onSave: (Habit) -> Void
-  @State private var isDone = false
-  @State private var isEditPresented: Bool = false
-  @State private var isPaywallPresented: Bool = false
 
   init(habit: Habit, onSave: @escaping (Habit) -> Void = { _ in }) {
     _habit = State(initialValue: habit)
@@ -29,6 +30,7 @@ struct HabitDetailView: View {
       ScrollView {
         LazyVStack(spacing: 24) {
           iconBubble
+          progressCard
           statsRow
           sevenDayPreviewCard
           monthlyHistoryCard
@@ -41,17 +43,28 @@ struct HabitDetailView: View {
     .navigationTitle(habit.name)
     .navigationBarTitleDisplayMode(.inline)
     .tint(habit.color)
-    .onAppear { isDone = habit.isCompletedToday }
-    .onChange(of: repository.activeHabits) { _, updated in
+    .onChange(of: repository.activeHabits, initial: true) { _, updated in
       if let fresh = updated.first(where: { $0.id == habit.id }) {
         habit = fresh
-        isDone = fresh.isCompletedToday
+      } else {
+        dismiss()
       }
     }
     .toolbar {
       ToolbarItem(placement: .topBarTrailing) {
-        Button(action: presentEditHabit) {
-          Image(systemName: "pencil")
+        Menu {
+          Button(action: presentEditHabit) {
+            Label("Edit Habit", systemImage: "pencil")
+          }
+
+          Button(role: .destructive) {
+            isArchiveConfirmationPresented = true
+          } label: {
+            Label("Archive Habit", systemImage: "archivebox.fill")
+          }
+        } label: {
+          Image(systemName: "ellipsis.circle")
+            .font(.system(size: 18, weight: .semibold))
         }
         .tint(habit.color)
       }
@@ -64,8 +77,16 @@ struct HabitDetailView: View {
         isEditPresented = false
       }
     }
-    .sheet(isPresented: $isPaywallPresented) {
-      ProudlyPlusView()
+    .confirmationDialog(
+      "Archive habit?",
+      isPresented: $isArchiveConfirmationPresented,
+      titleVisibility: .visible
+    ) {
+      Button("Archive", role: .destructive) {
+        archiveHabit()
+      }
+    } message: {
+      Text("\(habit.name) will be removed from your active habits.")
     }
   }
 
@@ -74,11 +95,41 @@ struct HabitDetailView: View {
       HabitIconView(icon: habit.icon, color: habit.color, fontSize: 42, circleSize: 96)
         .padding(.top, 20)
 
-      Text(habit.note)
-        .font(.subheadline)
-        .foregroundStyle(.secondary)
-        .multilineTextAlignment(.center)
+      if !habit.note.isEmpty {
+        Text(habit.note)
+          .font(.subheadline)
+          .foregroundStyle(.secondary)
+          .multilineTextAlignment(.center)
+      }
     }
+  }
+
+  private var progressCard: some View {
+    VStack(alignment: .leading, spacing: 14) {
+      HStack(alignment: .firstTextBaseline) {
+        VStack(alignment: .leading, spacing: 4) {
+          Text("Today")
+            .font(.subheadline.weight(.semibold))
+            .foregroundStyle(.secondary)
+          Text("\(habit.completedCountToday) of \(habit.dailyTargetCount) completed today")
+            .font(.system(size: 22, weight: .bold, design: .rounded))
+            .contentTransition(.numericText())
+        }
+
+        Spacer()
+
+        Text(habit.todayProgressPercentText)
+          .font(.title3.weight(.semibold))
+          .foregroundStyle(habit.color)
+          .contentTransition(.numericText())
+      }
+
+      ProgressView(value: habit.completionProgressToday)
+        .progressViewStyle(.linear)
+        .tint(habit.color)
+    }
+    .padding(20)
+    .proudlyGlass()
   }
 
   private var statsRow: some View {
@@ -105,19 +156,26 @@ struct HabitDetailView: View {
 
       HStack(spacing: 6) {
         ForEach(lastSevenDays, id: \.self) { dateKey in
+          let count = habit.completionCountsByDate[dateKey] ?? 0
+          let isComplete = count >= habit.dailyTargetCount
+
           VStack(spacing: 6) {
             ZStack {
               Circle()
-                .fill(
-                  habit.completedDates.contains(dateKey) ? habit.color : Color.gray.opacity(0.15)
-                )
+                .fill(isComplete ? habit.color : Color.gray.opacity(0.15))
                 .frame(width: 36, height: 36)
-              if habit.completedDates.contains(dateKey) {
+
+              if isComplete {
                 Image(systemName: "checkmark")
                   .font(.system(size: 12, weight: .bold))
                   .foregroundStyle(.white)
+              } else if count > 0 {
+                Text("\(count)")
+                  .font(.system(size: 11, weight: .bold))
+                  .foregroundStyle(.primary)
               }
             }
+
             Text(dayLabel(for: dateKey))
               .font(.caption2)
               .foregroundStyle(.secondary)
@@ -130,99 +188,72 @@ struct HabitDetailView: View {
     .proudlyGlass()
   }
 
-  @ViewBuilder
   private var monthlyHistoryCard: some View {
-    if subscriptionStore.hasProudlyPlus {
-      HStack(spacing: 14) {
-        ZStack {
-          Circle()
-            .fill(habit.color.opacity(0.15))
-            .frame(width: 42, height: 42)
-          Image(systemName: "calendar")
-            .foregroundStyle(habit.color)
-        }
-        VStack(alignment: .leading, spacing: 3) {
-          Text("Monthly History")
-            .font(.system(size: 15, weight: .semibold))
-            .foregroundStyle(.primary)
-          Text("Full calendar view coming soon.")
-            .font(.caption)
-            .foregroundStyle(.secondary)
-        }
-        Spacer()
-        Image(systemName: "chevron.right")
-          .font(.system(size: 13))
-          .foregroundStyle(.tertiary)
+    HStack(spacing: 14) {
+      ZStack {
+        Circle()
+          .fill(habit.color.opacity(0.15))
+          .frame(width: 42, height: 42)
+        Image(systemName: "calendar")
+          .foregroundStyle(habit.color)
       }
-      .padding(16)
-      .proudlyGlass(cornerRadius: 18)
-    } else {
-      Button {
-        isPaywallPresented = true
-      } label: {
-        HStack(spacing: 14) {
-          ZStack {
-            Circle()
-              .fill(habit.color.opacity(0.15))
-              .frame(width: 42, height: 42)
-            Image(systemName: "calendar")
-              .foregroundStyle(habit.color)
-          }
-          VStack(alignment: .leading, spacing: 3) {
-            Text("Monthly History")
-              .font(.system(size: 15, weight: .semibold))
-              .foregroundStyle(.primary)
-            Text("Unlock full habit history with Proudly Plus.")
-              .font(.caption)
-              .foregroundStyle(.secondary)
-          }
-          Spacer()
-          Image(systemName: "lock.fill")
-            .font(.system(size: 13))
-            .foregroundStyle(habit.color)
-        }
-        .padding(16)
-        .proudlyGlass(cornerRadius: 18)
+      VStack(alignment: .leading, spacing: 3) {
+        Text("Monthly History")
+          .font(.system(size: 15, weight: .semibold))
+          .foregroundStyle(.primary)
+        Text("Full calendar view coming soon.")
+          .font(.caption)
+          .foregroundStyle(.secondary)
       }
-      .buttonStyle(.plain)
+      Spacer()
     }
+    .padding(16)
+    .proudlyGlass(cornerRadius: 18)
   }
 
   private var markDoneButton: some View {
     Button {
-      let willBeDone = !isDone
-      let todayKey = HabitRepository.dateKey(for: .now)
-      withAnimation(.spring(response: 0.4, dampingFraction: 0.65)) {
-        isDone = willBeDone
-        if willBeDone {
-          habit.completedDates.insert(todayKey)
-        } else {
-          habit.completedDates.remove(todayKey)
-        }
+      if habit.isCompletedToday {
+        Haptics.impact(.soft)
+      } else if habit.completedCountToday + 1 >= habit.dailyTargetCount {
+        Haptics.notification(.success)
+      } else {
+        Haptics.selection()
       }
-      Haptics.notification(willBeDone ? .success : .warning)
+
       repository.toggleCompletion(for: habit)
     } label: {
-      Label(
-        isDone ? "Completed!" : "Mark as Done",
-        systemImage: isDone ? "checkmark.circle.fill" : "circle"
-      )
-      .font(.system(size: 17, weight: .semibold))
-      .foregroundStyle(isDone ? .white : habit.color)
-      .frame(maxWidth: .infinity)
-      .padding(.vertical, 17)
-      .background(isDone ? habit.color : habit.color.opacity(0.12))
-      .clipShape(RoundedRectangle(cornerRadius: 20))
+      Label(buttonTitle, systemImage: buttonSymbol)
+        .font(.system(size: 17, weight: .semibold))
+        .foregroundStyle(habit.isCompletedToday ? .white : habit.color)
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 17)
+        .background(habit.isCompletedToday ? habit.color : habit.color.opacity(0.12))
+        .clipShape(RoundedRectangle(cornerRadius: 20))
     }
     .buttonStyle(.plain)
   }
 
+  private var buttonTitle: String {
+    if habit.dailyTargetCount == 1 {
+      return habit.isCompletedToday ? "Completed!" : "Mark as Done"
+    }
+
+    if habit.isCompletedToday {
+      return "Undo One Check-In"
+    }
+
+    return "Log Another Check-In"
+  }
+
+  private var buttonSymbol: String {
+    habit.isCompletedToday ? "checkmark.circle.fill" : "plus.circle.fill"
+  }
+
   private var lastSevenDays: [String] {
-    let formatter = DateFormatter()
-    formatter.dateFormat = "yyyy-MM-dd"
-    return (0..<7).reversed().map { offset in
+    (0..<7).reversed().map { offset in
       let date = Calendar.current.date(byAdding: .day, value: -offset, to: .now) ?? .now
-      return formatter.string(from: date)
+      return HabitRepository.dateKey(for: date)
     }
   }
 
@@ -238,6 +269,12 @@ struct HabitDetailView: View {
   private func presentEditHabit() {
     Haptics.selection()
     isEditPresented = true
+  }
+
+  private func archiveHabit() {
+    Haptics.impact(.medium)
+    repository.archiveHabit(habit)
+    dismiss()
   }
 }
 
