@@ -15,6 +15,7 @@ import SwiftUI
 final class HabitRepository {
   private let modelContext: ModelContext
   private let notificationManager: NotificationManager
+  private let toastCenter: ToastCenter?
 
   private(set) var activeHabits: [Habit] = []
 
@@ -25,10 +26,12 @@ final class HabitRepository {
 
   init(
     modelContext: ModelContext,
-    notificationManager: NotificationManager? = nil
+    notificationManager: NotificationManager? = nil,
+    toastCenter: ToastCenter? = nil
   ) {
     self.modelContext = modelContext
     self.notificationManager = notificationManager ?? .shared
+    self.toastCenter = toastCenter
     refresh()
     seedIfNeeded()
   }
@@ -96,7 +99,7 @@ final class HabitRepository {
 
   // MARK: - Write
 
-  func addHabit(_ habit: Habit, markSeeded: Bool = false) {
+  func addHabit(_ habit: Habit, markSeeded: Bool = false, showsToast: Bool = true) {
     let reminderString = Self.normalizedReminderTimesString(from: habit.reminderTimes)
     let legacyReminder = habit.reminderTimes.first
     let (hour, minute) = Self.parseReminder(legacyReminder)
@@ -121,6 +124,10 @@ final class HabitRepository {
 
     refresh()
     syncReminders(for: habit)
+
+    if showsToast {
+      toastCenter?.show(message: "Added \(habit.name)", symbol: "plus.circle.fill")
+    }
   }
 
   func updateHabit(_ habit: Habit) {
@@ -143,6 +150,7 @@ final class HabitRepository {
     save()
     refresh()
     syncReminders(for: habit)
+    toastCenter?.show(message: "Updated \(habit.name)", symbol: "pencil.circle.fill")
   }
 
   func incrementCompletion(for habit: Habit) {
@@ -162,6 +170,15 @@ final class HabitRepository {
     persistentHabit.updatedAt = .now
     save()
     refresh()
+    let updatedCount = min(habit.completedCountToday + 1, target)
+    if updatedCount >= target {
+      toastCenter?.show(message: "\(habit.name) completed", symbol: "checkmark.circle.fill")
+    } else {
+      toastCenter?.show(
+        message: "\(habit.name): \(updatedCount) of \(target)",
+        symbol: "plus.circle.fill"
+      )
+    }
   }
 
   func decrementCompletion(for habit: Habit) {
@@ -179,6 +196,11 @@ final class HabitRepository {
     persistentHabit.updatedAt = .now
     save()
     refresh()
+    let updatedCount = max(habit.completedCountToday - 1, 0)
+    toastCenter?.show(
+      message: "\(habit.name): \(updatedCount) of \(max(habit.dailyTargetCount, 1))",
+      symbol: "minus.circle.fill"
+    )
   }
 
   func toggleCompletion(for habit: Habit) {
@@ -204,6 +226,7 @@ final class HabitRepository {
     persistentHabit.updatedAt = .now
     save()
     refresh()
+    toastCenter?.show(message: "Archived \(habit.name)", symbol: "archivebox.fill")
 
     Task {
       await notificationManager.cancelReminders(for: habit.id)
@@ -425,9 +448,9 @@ final class HabitRepository {
       let repository = HabitRepository(modelContext: container.mainContext)
 
       if repository.activeHabits.isEmpty {
-        repository.addHabit(Habit.samples[0], markSeeded: true)
-        repository.addHabit(Habit.samples[1], markSeeded: true)
-        repository.addHabit(Habit.samples[2], markSeeded: true)
+        repository.addHabit(Habit.samples[0], markSeeded: true, showsToast: false)
+        repository.addHabit(Habit.samples[1], markSeeded: true, showsToast: false)
+        repository.addHabit(Habit.samples[2], markSeeded: true, showsToast: false)
       }
 
       return repository

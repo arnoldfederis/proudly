@@ -14,10 +14,17 @@ struct TodayView: View {
   @State private var selectedHabit: Habit?
   @State private var isAddPresented: Bool = false
   @State private var isPaywallPresented: Bool = false
+  @State private var showsCelebrationCard = false
+  @State private var displayedCompletedCount = 0
+  @State private var isAwaitingCompletedCountSync = false
+  @State private var togglingHabitIDs: Set<UUID> = []
 
   private let freeHabitLimit = 3
 
-  private var completedCount: Int { repository.activeHabits.filter(\.isCompletedToday).count }
+  private var completedCount: Int { displayedCompletedCount }
+  private var repositoryCompletedCount: Int {
+    repository.activeHabits.filter(\.isCompletedToday).count
+  }
   private var totalCount: Int { repository.activeHabits.count }
   private var progressRatio: Double {
     guard totalCount > 0 else { return 0 }
@@ -37,7 +44,10 @@ struct TodayView: View {
                 .foregroundStyle(.secondary)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            progressCard
+            if completedCount > 0 {
+              progressCard
+                .transition(.move(edge: .top).combined(with: .opacity).combined(with: .scale))
+            }
             habitsSection
             gentleMessageCard
             Spacer(minLength: 80)
@@ -70,6 +80,26 @@ struct TodayView: View {
         ProudlyPlusView()
       }
     }
+    .onAppear {
+      displayedCompletedCount = repositoryCompletedCount
+      showsCelebrationCard = displayedCompletedCount > 0
+    }
+    .onChange(of: completedCount) { _, newValue in
+      withAnimation(.spring(response: 0.42, dampingFraction: 0.8)) {
+        showsCelebrationCard = newValue > 0
+      }
+    }
+    .onChange(of: repository.activeHabits) { _, _ in
+      let actualCompletedCount = repositoryCompletedCount
+      guard !isAwaitingCompletedCountSync || actualCompletedCount == displayedCompletedCount else {
+        return
+      }
+
+      withAnimation(.spring(response: 0.32, dampingFraction: 0.78)) {
+        displayedCompletedCount = actualCompletedCount
+        isAwaitingCompletedCountSync = false
+      }
+    }
   }
 
   private var progressCard: some View {
@@ -86,9 +116,11 @@ struct TodayView: View {
       VStack(alignment: .leading, spacing: 6) {
         Text("You're doing great! 👏")
           .font(.headline)
+          .symbolEffect(.bounce, value: completedCount)
         Text("\(completedCount) of \(totalCount) habits completed")
           .font(.subheadline)
           .foregroundStyle(.secondary)
+          .contentTransition(.numericText())
 
         ProgressView(value: progressRatio)
           .progressViewStyle(.linear)
@@ -98,6 +130,8 @@ struct TodayView: View {
     }
     .padding(20)
     .proudlyGlass()
+    .scaleEffect(showsCelebrationCard ? 1 : 0.96)
+    .opacity(showsCelebrationCard ? 1 : 0)
   }
 
   private var habitsSection: some View {
@@ -105,21 +139,9 @@ struct TodayView: View {
       ForEach(repository.activeHabits) { habit in
         HabitRowView(
           habit: habit,
+          isToggleDisabled: togglingHabitIDs.contains(habit.id),
           onToggle: {
-            let nextCount =
-              habit.isCompletedToday
-              ? max(habit.completedCountToday - 1, 0)
-              : min(habit.completedCountToday + 1, habit.dailyTargetCount)
-            let reachesCompletion = nextCount >= habit.dailyTargetCount
-
-            if habit.isCompletedToday {
-              Haptics.impact(.soft)
-            } else if reachesCompletion {
-              Haptics.notification(.success)
-            } else {
-              Haptics.selection()
-            }
-            repository.toggleCompletion(for: habit)
+            toggleHabit(habit)
           },
           onNavigate: { selectedHabit = habit }
         )
@@ -160,15 +182,94 @@ struct TodayView: View {
       isAddPresented = true
     }
   }
+
+  private func toggleHabit(_ habit: Habit) {
+    guard !togglingHabitIDs.contains(habit.id) else { return }
+    guard let currentHabit = repository.activeHabits.first(where: { $0.id == habit.id }) else {
+      return
+    }
+
+    togglingHabitIDs.insert(habit.id)
+
+    let target = max(currentHabit.dailyTargetCount, 1)
+    let currentCount = currentHabit.completedCountToday
+    let nextCount =
+      currentHabit.isCompletedToday
+      ? max(currentCount - 1, 0)
+      : min(currentCount + 1, currentHabit.dailyTargetCount)
+    let wasComplete = currentCount >= target
+    let reachesCompletion = nextCount >= target
+    let completedDelta =
+      wasComplete == reachesCompletion ? 0 : (reachesCompletion ? 1 : -1)
+
+    if completedDelta != 0 {
+      withAnimation(.spring(response: 0.32, dampingFraction: 0.78)) {
+        displayedCompletedCount = max(0, displayedCompletedCount + completedDelta)
+        isAwaitingCompletedCountSync = true
+      }
+    }
+
+    if currentHabit.isCompletedToday {
+      Haptics.impact(.soft)
+      repository.decrementCompletion(for: currentHabit)
+    } else if reachesCompletion {
+      Haptics.notification(.success)
+      repository.incrementCompletion(for: currentHabit)
+    } else {
+      Haptics.selection()
+      repository.incrementCompletion(for: currentHabit)
+    }
+
+    Task { @MainActor in
+      try? await Task.sleep(for: .milliseconds(250))
+      togglingHabitIDs.remove(habit.id)
+      if repositoryCompletedCount == displayedCompletedCount {
+        isAwaitingCompletedCountSync = false
+      }
+    }
+  }
 }
 
 struct HabitRowView: View {
   let habit: Habit
+  let isToggleDisabled: Bool
   let onToggle: () -> Void
   let onNavigate: () -> Void
 
+  @State private var displayedCount: Int
+  @State private var isAwaitingRepositorySync = false
+
+  init(
+    habit: Habit,
+    isToggleDisabled: Bool,
+    onToggle: @escaping () -> Void,
+    onNavigate: @escaping () -> Void
+  ) {
+    self.habit = habit
+    self.isToggleDisabled = isToggleDisabled
+    self.onToggle = onToggle
+    self.onNavigate = onNavigate
+    _displayedCount = State(initialValue: habit.completedCountToday)
+  }
+
+  private var displayedProgress: Double {
+    min(Double(displayedCount) / Double(max(habit.dailyTargetCount, 1)), 1)
+  }
+
+  private var displayedPercentText: String {
+    "\(Int((displayedProgress * 100).rounded()))%"
+  }
+
+  private var displayedProgressLabel: String {
+    "\(displayedCount)/\(max(habit.dailyTargetCount, 1))"
+  }
+
+  private var isDisplayedComplete: Bool {
+    displayedCount >= max(habit.dailyTargetCount, 1)
+  }
+
   var body: some View {
-    Button(action: onNavigate) {
+    HStack(spacing: 14) {
       HStack(spacing: 14) {
         HabitIconView(
           icon: habit.icon,
@@ -190,6 +291,7 @@ struct HabitRowView: View {
               Text(habit.streakLabel)
                 .font(.caption)
                 .foregroundStyle(.secondary)
+                .contentTransition(.numericText())
             }
           } else {
             VStack(alignment: .leading, spacing: 2) {
@@ -200,26 +302,51 @@ struct HabitRowView: View {
                 Text(habit.streakLabel)
                   .font(.caption)
                   .foregroundStyle(.secondary)
+                  .contentTransition(.numericText())
               }
-              Text("\(habit.completedCountToday) of \(habit.dailyTargetCount) completed today")
+              Text("\(displayedCount) of \(habit.dailyTargetCount) completed today")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .contentTransition(.numericText())
             }
           }
         }
+      }
+      .frame(maxWidth: .infinity, alignment: .leading)
+      .contentShape(Rectangle())
+      .onTapGesture(perform: onNavigate)
+      .accessibilityAddTraits(.isButton)
 
-        Spacer()
+      Button {
+        let target = max(habit.dailyTargetCount, 1)
+        let nextCount =
+          isDisplayedComplete
+          ? max(displayedCount - 1, 0)
+          : min(displayedCount + 1, target)
 
-        Button(action: onToggle) {
-          VStack(alignment: .trailing, spacing: 4) {
-            ZStack {
+        withAnimation(.spring(response: 0.32, dampingFraction: 0.78)) {
+          displayedCount = nextCount
+          isAwaitingRepositorySync = true
+        }
+
+        onToggle()
+      } label: {
+        VStack(spacing: 6) {
+          ZStack {
+            Circle()
+              .stroke(Color.gray.opacity(0.18), lineWidth: 4)
+              .frame(width: 40, height: 40)
+
+            if isDisplayedComplete {
               Circle()
-                .stroke(Color.gray.opacity(0.18), lineWidth: 4)
+                .stroke(habit.color, lineWidth: 4)
                 .frame(width: 40, height: 40)
-
+                .animation(
+                  .spring(response: 0.32, dampingFraction: 0.78),
+                  value: isDisplayedComplete)
+            } else {
               Circle()
-                .trim(from: 0, to: habit.completionProgressToday)
+                .trim(from: 0, to: displayedProgress)
                 .stroke(
                   habit.color,
                   style: StrokeStyle(lineWidth: 4, lineCap: .round)
@@ -228,45 +355,60 @@ struct HabitRowView: View {
                 .frame(width: 40, height: 40)
                 .animation(
                   .spring(response: 0.32, dampingFraction: 0.78),
-                  value: habit.completionProgressToday)
-
-              if habit.isCompletedToday {
-                Circle()
-                  .fill(habit.color)
-                  .frame(width: 30, height: 30)
-                Image(systemName: "checkmark")
-                  .font(.system(size: 13, weight: .bold))
-                  .foregroundStyle(.white)
-                  .symbolEffect(.bounce, value: habit.completedCountToday)
-              } else if habit.dailyTargetCount == 1 {
-                Circle()
-                  .fill(Color.white.opacity(0.08))
-                  .frame(width: 30, height: 30)
-              } else {
-                Text(habit.todayProgressLabel)
-                  .font(.system(size: 9, weight: .bold))
-                  .foregroundStyle(.primary)
-                  .contentTransition(.numericText())
-              }
+                  value: displayedProgress)
             }
 
-            if habit.dailyTargetCount > 1 {
-              Text(habit.todayProgressPercentText)
-                .font(.caption2.weight(.semibold))
-                .foregroundStyle(.secondary)
+            if isDisplayedComplete {
+              Circle()
+                .fill(habit.color)
+                .frame(width: 30, height: 30)
+              Image(systemName: "checkmark")
+                .font(.system(size: 13, weight: .bold))
+                .foregroundStyle(.white)
+                .symbolEffect(.bounce, value: displayedCount)
+            } else if habit.dailyTargetCount == 1 {
+              Circle()
+                .fill(Color.white.opacity(0.08))
+                .frame(width: 30, height: 30)
+            } else {
+              Text(displayedProgressLabel)
+                .font(.system(size: 9, weight: .bold))
+                .foregroundStyle(.primary)
                 .contentTransition(.numericText())
             }
           }
+          .frame(width: 40, height: 40)
+
+          if habit.dailyTargetCount > 1 {
+            Text(displayedPercentText)
+              .font(.caption2.weight(.semibold))
+              .foregroundStyle(.secondary)
+              .frame(maxWidth: .infinity, alignment: .center)
+              .contentTransition(.numericText())
+          }
         }
-        .buttonStyle(.plain)
+        .frame(width: 48, alignment: .center)
       }
-      .frame(maxWidth: .infinity)
-      .padding(.horizontal, 16)
-      .padding(.vertical, 13)
-      .contentShape(Rectangle())
+      .buttonStyle(.plain)
+      .disabled(isToggleDisabled)
     }
-    .buttonStyle(.plain)
+    .frame(maxWidth: .infinity)
+    .padding(.horizontal, 16)
+    .padding(.vertical, 13)
     .proudlyGlass(cornerRadius: 18)
+    .onChange(of: habit.completedCountToday, initial: true) { _, newValue in
+      guard !isAwaitingRepositorySync || newValue == displayedCount else { return }
+
+      withAnimation(.spring(response: 0.32, dampingFraction: 0.78)) {
+        displayedCount = newValue
+        isAwaitingRepositorySync = false
+      }
+    }
+    .onChange(of: isToggleDisabled) { _, disabled in
+      if !disabled, habit.completedCountToday == displayedCount {
+        isAwaitingRepositorySync = false
+      }
+    }
   }
 }
 

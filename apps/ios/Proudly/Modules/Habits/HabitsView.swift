@@ -15,6 +15,7 @@ struct HabitsView: View {
   @State private var selectedHabit: Habit?
   @State private var habitPendingArchive: Habit?
   @State private var isArchiveConfirmationPresented = false
+  @State private var swipeResetToken = UUID()
   @State private var isAddPresented: Bool = false
   @State private var isPaywallPresented: Bool = false
 
@@ -48,8 +49,12 @@ struct HabitsView: View {
                     } label: {
                       HabitCardView(habit: habit)
                     }
+                    .id(rowID(for: habit))
                     .buttonStyle(.plain)
-                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                    .animation(
+                      .spring(response: 0.32, dampingFraction: 0.82), value: swipeResetToken
+                    )
+                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                       Button(role: .destructive) {
                         habitPendingArchive = habit
                         isArchiveConfirmationPresented = true
@@ -93,14 +98,21 @@ struct HabitsView: View {
       .sheet(isPresented: $isPaywallPresented) {
         ProudlyPlusView()
       }
-      .confirmationDialog(
+      .onChange(of: isArchiveConfirmationPresented) { _, isPresented in
+        if !isPresented, habitPendingArchive != nil {
+          resetArchiveSwipeState()
+        }
+      }
+      .alert(
         "Archive habit?",
         isPresented: $isArchiveConfirmationPresented,
-        titleVisibility: .visible
       ) {
         Button("Archive", role: .destructive) {
           guard let habitPendingArchive else { return }
           archiveHabit(habitPendingArchive)
+        }
+        Button("Cancel", role: .cancel) {
+          resetArchiveSwipeState()
         }
       } message: {
         Text(
@@ -194,7 +206,18 @@ struct HabitsView: View {
   private func archiveHabit(_ habit: Habit) {
     Haptics.impact(.medium)
     repository.archiveHabit(habit)
+    resetArchiveSwipeState()
+  }
+
+  private func resetArchiveSwipeState() {
     habitPendingArchive = nil
+    withAnimation(.spring(response: 0.34, dampingFraction: 0.82)) {
+      swipeResetToken = UUID()
+    }
+  }
+
+  private func rowID(for habit: Habit) -> String {
+    "\(habit.id.uuidString)-\(swipeResetToken.uuidString)"
   }
 }
 

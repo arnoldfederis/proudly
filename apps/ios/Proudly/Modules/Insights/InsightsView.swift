@@ -9,9 +9,11 @@ import Charts
 import SwiftUI
 
 struct InsightsView: View {
+  @Environment(\.colorScheme) private var colorScheme
   @Environment(ThemeViewModel.self) private var theme
   @Environment(HabitRepository.self) private var repository
   @State private var viewModel = InsightsViewModel()
+  @State private var selectedDayID: String?
 
   var body: some View {
     NavigationStack {
@@ -45,9 +47,11 @@ struct InsightsView: View {
       VStack(alignment: .leading, spacing: 4) {
         Text("Great job this week!")
           .font(.headline)
-        Text("You completed \(viewModel.totalCompletions) habits in 7 days.")
-          .font(.subheadline)
-          .foregroundStyle(.secondary)
+        Text(
+          "You logged \(viewModel.totalCompletions) \(completionUnit(for: viewModel.totalCompletions)) in 7 days."
+        )
+        .font(.subheadline)
+        .foregroundStyle(.secondary)
       }
       Spacer()
     }
@@ -57,18 +61,64 @@ struct InsightsView: View {
 
   private var weeklyChartCard: some View {
     VStack(alignment: .leading, spacing: 14) {
-      Text("Your progress this week")
-        .font(.system(size: 16, weight: .semibold))
+      VStack(alignment: .leading, spacing: 6) {
+        Text("Your progress this week")
+          .font(.system(size: 16, weight: .semibold))
+
+        if let selectedDay {
+          Text("\(selectedDay.day): \(selectedDay.count) \(completionUnit(for: selectedDay.count))")
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(theme.activeTheme.accentColor)
+            .contentTransition(.numericText())
+        } else {
+          Text("Tap a bar to inspect that day.")
+            .font(.caption)
+            .foregroundStyle(.secondary)
+        }
+      }
 
       Chart(viewModel.weeklyData) { item in
         BarMark(
           x: .value("Day", item.day),
           y: .value("Habits", item.count)
         )
-        .foregroundStyle(theme.activeTheme.accentGradient)
+        .foregroundStyle(
+          selectedDayID == nil || selectedDayID == item.id
+            ? AnyShapeStyle(theme.activeTheme.accentGradient)
+            : AnyShapeStyle(Color.secondary.opacity(0.28))
+        )
         .cornerRadius(8)
+        .annotation(position: .top) {
+          if selectedDayID == item.id {
+            Text("\(item.count)")
+              .font(.caption2.weight(.bold))
+              .foregroundStyle(colorScheme == .dark ? .black : .white)
+              .padding(.horizontal, 8)
+              .padding(.vertical, 4)
+              .background(
+                colorScheme == .dark ? Color.white.opacity(0.92) : Color.black.opacity(0.88),
+                in: Capsule()
+              )
+          }
+        }
       }
       .frame(height: 160)
+      .chartOverlay { proxy in
+        GeometryReader { geometry in
+          Rectangle()
+            .fill(.clear)
+            .contentShape(Rectangle())
+            .gesture(
+              DragGesture(minimumDistance: 0)
+                .onChanged { value in
+                  updateSelectedDay(at: value.location, proxy: proxy, geometry: geometry)
+                }
+                .onEnded { value in
+                  updateSelectedDay(at: value.location, proxy: proxy, geometry: geometry)
+                }
+            )
+        }
+      }
       .chartYAxis {
         AxisMarks(values: .automatic(desiredCount: 4)) { _ in
           AxisGridLine()
@@ -100,7 +150,7 @@ struct InsightsView: View {
       InsightStatCard(
         icon: "flame.fill",
         label: "Current Streak",
-        value: "\(viewModel.currentStreak) days",
+        value: "\(viewModel.currentStreak) \(dayUnit(for: viewModel.currentStreak))",
         color: ProudlyTheme.pink
       )
       InsightStatCard(
@@ -112,10 +162,40 @@ struct InsightsView: View {
       InsightStatCard(
         icon: "trophy.fill",
         label: "Best Day",
-        value: "\(viewModel.maxDailyCount) habits",
+        value: "\(viewModel.maxDailyCount) \(completionUnit(for: viewModel.maxDailyCount))",
         color: ProudlyTheme.purple
       )
     }
+  }
+
+  private var selectedDay: InsightsViewModel.DayData? {
+    guard let selectedDayID else { return nil }
+    return viewModel.weeklyData.first(where: { $0.id == selectedDayID })
+  }
+
+  private func completionUnit(for count: Int) -> String {
+    count == 1 ? "completion" : "completions"
+  }
+
+  private func dayUnit(for count: Int) -> String {
+    count == 1 ? "day" : "days"
+  }
+
+  private func updateSelectedDay(
+    at location: CGPoint,
+    proxy: ChartProxy,
+    geometry: GeometryProxy
+  ) {
+    guard let plotFrame = proxy.plotFrame else { return }
+    let plotArea = geometry[plotFrame]
+    guard plotArea.contains(location) else {
+      selectedDayID = nil
+      return
+    }
+
+    let relativeX = location.x - plotArea.origin.x
+    guard let day: String = proxy.value(atX: relativeX) else { return }
+    selectedDayID = viewModel.weeklyData.first(where: { $0.day == day })?.id
   }
 }
 
@@ -135,6 +215,7 @@ struct InsightStatCard: View {
         .font(.system(size: 16, weight: .bold))
         .lineLimit(2)
         .minimumScaleFactor(0.8)
+        .contentTransition(.numericText())
       Text(label)
         .font(.caption)
         .foregroundStyle(.secondary)

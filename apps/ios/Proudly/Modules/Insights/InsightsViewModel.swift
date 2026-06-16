@@ -28,7 +28,7 @@ final class InsightsViewModel {
       let key = fmt.string(from: date)
       let count = habits.filter { $0.completedDates.contains(key) }.count
       let weekdayIndex = cal.component(.weekday, from: date) - 1
-      return DayData(day: dayAbbrevs[weekdayIndex], count: count)
+      return DayData(id: key, day: dayAbbrevs[weekdayIndex], count: count)
     }
 
     currentStreak = habits.map(\.streak).max() ?? 0
@@ -49,7 +49,7 @@ final class InsightsViewModel {
   }
 
   struct DayData: Identifiable {
-    let id = UUID()
+    let id: String
     let day: String
     let count: Int
   }

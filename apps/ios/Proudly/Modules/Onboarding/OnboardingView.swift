@@ -19,10 +19,11 @@ struct OnboardingView: View {
   ]
 
   var body: some View {
-    VStack(spacing: 28) {
-      Spacer(minLength: 24)
-
-      VStack(spacing: 18) {
+    stepContainer(
+      title: "Proudly",
+      subtitle: "Do one thing today that makes you proud."
+    ) {
+      VStack(spacing: 28) {
         ZStack {
           Circle()
             .fill(
@@ -39,20 +40,13 @@ struct OnboardingView: View {
             .foregroundStyle(ProudlyTheme.purplePinkGradient)
             .symbolEffect(.bounce, value: features.count)
         }
+        .frame(maxWidth: .infinity)
+        .padding(.top, 8)
 
-        VStack(spacing: 10) {
-          Text("Proudly")
-            .font(.system(size: 40, weight: .bold, design: .rounded))
-            .foregroundStyle(ProudlyTheme.purplePinkGradient)
-
-          Text("A gentle habit tracker for small wins.")
-            .font(.title3.weight(.semibold))
-
-          Text("Do one thing today that makes you proud.")
-            .font(.subheadline)
-            .foregroundStyle(.secondary)
-            .multilineTextAlignment(.center)
-        }
+        Text("A gentle habit tracker for small wins.")
+          .font(.title3.weight(.semibold))
+          .frame(maxWidth: .infinity, alignment: .center)
+          .multilineTextAlignment(.center)
       }
 
       VStack(spacing: 12) {
@@ -71,31 +65,53 @@ struct OnboardingView: View {
           .proudlyGlass(cornerRadius: 18)
         }
       }
-
-      VStack(spacing: 6) {
-        Text("No guilt. No pressure. Just small wins every day.")
-          .font(.footnote.weight(.medium))
-          .foregroundStyle(.secondary)
-          .multilineTextAlignment(.center)
-      }
-
-      Button(action: onGetStarted) {
-        Text("Get Started")
-          .font(.system(size: 17, weight: .semibold))
-          .foregroundStyle(.white)
-          .frame(maxWidth: .infinity)
-          .padding(.vertical, 17)
-          .background(ProudlyTheme.purplePinkGradient)
-          .clipShape(RoundedRectangle(cornerRadius: 20))
-      }
-      .buttonStyle(.plain)
-      .padding(.top, 8)
-
-      Spacer()
     }
-    .padding(.horizontal, 24)
     .frame(maxWidth: .infinity, maxHeight: .infinity)
-    .background(theme.activeTheme.backgroundGradient)
+
+    Text("No guilt. No pressure. Just small wins every day.")
+      .font(.footnote.weight(.medium))
+      .foregroundStyle(.secondary)
+      .frame(maxWidth: .infinity, alignment: .center)
+      .multilineTextAlignment(.center)
+
+    Button(action: onGetStarted) {
+      Text("Get Started")
+        .font(.system(size: 17, weight: .semibold))
+        .foregroundStyle(.white)
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 17)
+        .background(ProudlyTheme.purplePinkGradient)
+        .clipShape(RoundedRectangle(cornerRadius: 20))
+    }
+    .buttonStyle(.plain)
+    .padding(.horizontal, 20)
+    .padding(.top, 12)
+    .padding(.bottom, 28)
+  }
+
+  private func stepContainer<Content: View>(
+    title: String,
+    subtitle: String,
+    @ViewBuilder content: () -> Content
+  ) -> some View {
+    ScrollView {
+      VStack(alignment: .leading, spacing: 22) {
+        VStack(alignment: .leading, spacing: 10) {
+          Text(title)
+            .font(.system(size: 30, weight: .bold, design: .rounded))
+            .fixedSize(horizontal: false, vertical: true)
+          Text(subtitle)
+            .font(.subheadline)
+            .foregroundStyle(.secondary)
+            .fixedSize(horizontal: false, vertical: true)
+        }
+
+        content()
+      }
+      .padding(.horizontal, 20)
+      .padding(.top, 24)
+      .padding(.bottom, 28)
+    }
   }
 }
 

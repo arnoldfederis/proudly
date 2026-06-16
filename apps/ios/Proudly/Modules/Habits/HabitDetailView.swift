@@ -15,6 +15,7 @@ struct HabitDetailView: View {
   @State private var habit: Habit
   @State private var isEditPresented = false
   @State private var isArchiveConfirmationPresented = false
+  @State private var animateContent = false
 
   let onSave: (Habit) -> Void
 
@@ -30,11 +31,17 @@ struct HabitDetailView: View {
       ScrollView {
         LazyVStack(spacing: 24) {
           iconBubble
+            .detailEntrance(animateContent, delay: 0.00)
           progressCard
+            .detailEntrance(animateContent, delay: 0.06)
           statsRow
+            .detailEntrance(animateContent, delay: 0.12)
           sevenDayPreviewCard
+            .detailEntrance(animateContent, delay: 0.18)
           monthlyHistoryCard
-          markDoneButton
+            .detailEntrance(animateContent, delay: 0.24)
+          completionButtons
+            .detailEntrance(animateContent, delay: 0.30)
           Spacer(minLength: 40)
         }
         .padding(.horizontal, 20)
@@ -52,19 +59,29 @@ struct HabitDetailView: View {
     }
     .toolbar {
       ToolbarItem(placement: .topBarTrailing) {
-        Menu {
-          Button(action: presentEditHabit) {
-            Label("Edit Habit", systemImage: "pencil")
-          }
-
-          Button(role: .destructive) {
-            isArchiveConfirmationPresented = true
-          } label: {
-            Label("Archive Habit", systemImage: "archivebox.fill")
-          }
+        Button(role: .destructive) {
+          isArchiveConfirmationPresented = true
         } label: {
-          Image(systemName: "ellipsis.circle")
-            .font(.system(size: 18, weight: .semibold))
+          Label("Archive Habit", systemImage: "archivebox")
+        }
+        .tint(.primary)
+        .confirmationDialog(
+          "Archive habit?",
+          isPresented: $isArchiveConfirmationPresented,
+          titleVisibility: .visible
+        ) {
+          Button("Archive", role: .destructive) {
+            archiveHabit()
+          }
+        } message: {
+          Text("\(habit.name) will be removed from your active habits.")
+        }
+      }
+
+      ToolbarSpacer(.fixed, placement: .topBarTrailing)
+      ToolbarItem(placement: .topBarTrailing) {
+        Button(action: presentEditHabit) {
+          Label("Edit Habit", systemImage: "pencil")
         }
         .tint(habit.color)
       }
@@ -77,16 +94,10 @@ struct HabitDetailView: View {
         isEditPresented = false
       }
     }
-    .confirmationDialog(
-      "Archive habit?",
-      isPresented: $isArchiveConfirmationPresented,
-      titleVisibility: .visible
-    ) {
-      Button("Archive", role: .destructive) {
-        archiveHabit()
+    .onAppear {
+      withAnimation(.spring(response: 0.5, dampingFraction: 0.82)) {
+        animateContent = true
       }
-    } message: {
-      Text("\(habit.name) will be removed from your active habits.")
     }
   }
 
@@ -114,6 +125,8 @@ struct HabitDetailView: View {
           Text("\(habit.completedCountToday) of \(habit.dailyTargetCount) completed today")
             .font(.system(size: 22, weight: .bold, design: .rounded))
             .contentTransition(.numericText())
+            .animation(
+              .spring(response: 0.32, dampingFraction: 0.82), value: habit.completedCountToday)
         }
 
         Spacer()
@@ -122,6 +135,8 @@ struct HabitDetailView: View {
           .font(.title3.weight(.semibold))
           .foregroundStyle(habit.color)
           .contentTransition(.numericText())
+          .animation(
+            .spring(response: 0.32, dampingFraction: 0.82), value: habit.completedCountToday)
       }
 
       ProgressView(value: habit.completionProgressToday)
@@ -211,43 +226,68 @@ struct HabitDetailView: View {
     .proudlyGlass(cornerRadius: 18)
   }
 
-  private var markDoneButton: some View {
-    Button {
-      if habit.isCompletedToday {
+  private var completionButtons: some View {
+    VStack(spacing: 12) {
+      Button {
+        guard habit.completedCountToday > 0 else { return }
         Haptics.impact(.soft)
-      } else if habit.completedCountToday + 1 >= habit.dailyTargetCount {
-        Haptics.notification(.success)
-      } else {
-        Haptics.selection()
+        repository.decrementCompletion(for: habit)
+      } label: {
+        Label(minusButtonTitle, systemImage: "minus.circle.fill")
+          .font(.system(size: 17, weight: .semibold))
+          .foregroundStyle(habit.completedCountToday > 0 ? habit.color : .secondary)
+          .frame(maxWidth: .infinity)
+          .padding(.vertical, 17)
+          .background(habit.color.opacity(habit.completedCountToday > 0 ? 0.12 : 0.06))
+          .clipShape(RoundedRectangle(cornerRadius: 20))
       }
+      .buttonStyle(.plain)
+      .disabled(habit.completedCountToday == 0)
 
-      repository.toggleCompletion(for: habit)
-    } label: {
-      Label(buttonTitle, systemImage: buttonSymbol)
-        .font(.system(size: 17, weight: .semibold))
-        .foregroundStyle(habit.isCompletedToday ? .white : habit.color)
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 17)
-        .background(habit.isCompletedToday ? habit.color : habit.color.opacity(0.12))
-        .clipShape(RoundedRectangle(cornerRadius: 20))
+      Button {
+        if habit.completedCountToday + 1 >= habit.dailyTargetCount {
+          Haptics.notification(.success)
+        } else {
+          Haptics.selection()
+        }
+
+        repository.incrementCompletion(for: habit)
+      } label: {
+        Label(plusButtonTitle, systemImage: plusButtonSymbol)
+          .font(.system(size: 17, weight: .semibold))
+          .foregroundStyle(habit.isCompletedToday ? .white : habit.color)
+          .frame(maxWidth: .infinity)
+          .padding(.vertical, 17)
+          .background(habit.isCompletedToday ? habit.color : habit.color.opacity(0.12))
+          .clipShape(RoundedRectangle(cornerRadius: 20))
+      }
+      .buttonStyle(.plain)
+      .disabled(habit.isCompletedToday)
+      .opacity(habit.isCompletedToday ? 0.78 : 1)
     }
-    .buttonStyle(.plain)
   }
 
-  private var buttonTitle: String {
+  private var plusButtonTitle: String {
     if habit.dailyTargetCount == 1 {
       return habit.isCompletedToday ? "Completed!" : "Mark as Done"
     }
 
     if habit.isCompletedToday {
-      return "Undo One Check-In"
+      return "Completed Today"
     }
 
     return "Log Another Check-In"
   }
 
-  private var buttonSymbol: String {
+  private var plusButtonSymbol: String {
     habit.isCompletedToday ? "checkmark.circle.fill" : "plus.circle.fill"
+  }
+
+  private var minusButtonTitle: String {
+    if habit.dailyTargetCount == 1 {
+      return "Undo"
+    }
+    return "Remove Check-In"
   }
 
   private var lastSevenDays: [String] {
@@ -278,6 +318,19 @@ struct HabitDetailView: View {
   }
 }
 
+extension View {
+  fileprivate func detailEntrance(_ isVisible: Bool, delay: Double) -> some View {
+    self
+      .opacity(isVisible ? 1 : 0)
+      .offset(y: isVisible ? 0 : 18)
+      .scaleEffect(isVisible ? 1 : 0.98)
+      .animation(
+        .spring(response: 0.52, dampingFraction: 0.84).delay(delay),
+        value: isVisible
+      )
+  }
+}
+
 struct StatCard: View {
   let label: String
   let value: String
@@ -289,6 +342,7 @@ struct StatCard: View {
       Text(value)
         .font(.system(size: 34, weight: .bold, design: .rounded))
         .foregroundStyle(color)
+        .contentTransition(.numericText())
       Text(unit)
         .font(.caption)
         .foregroundStyle(.secondary)

@@ -27,7 +27,12 @@ final class SubscriptionStore {
   private(set) var isRestoreInProgress = false
   var presentedAlert: SubscriptionAlert?
 
+  private let toastCenter: ToastCenter?
   private var customerInfoUpdatesTask: Task<Void, Never>?
+
+  init(toastCenter: ToastCenter? = nil) {
+    self.toastCenter = toastCenter
+  }
 
   var hasProudlyPlus: Bool {
     customerInfo?.entitlements[RevenueCatConfig.proudlyPlusEntitlementID]?.isActive == true
@@ -126,6 +131,9 @@ final class SubscriptionStore {
       guard !userCancelled else { return false }
 
       customerInfo = updatedCustomerInfo
+      if hasProudlyPlus {
+        toastCenter?.show(message: "Proudly Plus unlocked", symbol: "sparkles")
+      }
       return hasProudlyPlus
     } catch {
       presentError(
@@ -145,6 +153,11 @@ final class SubscriptionStore {
 
     do {
       customerInfo = try await Purchases.shared.restorePurchases()
+      if hasProudlyPlus {
+        toastCenter?.show(message: "Subscription restored", symbol: "arrow.clockwise.circle.fill")
+      } else {
+        toastCenter?.show(message: "No active subscription found", symbol: "info.circle.fill")
+      }
       return hasProudlyPlus
     } catch {
       presentError(

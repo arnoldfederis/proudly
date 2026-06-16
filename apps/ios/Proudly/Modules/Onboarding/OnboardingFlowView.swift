@@ -132,7 +132,7 @@ struct OnboardingFlowView: View {
         title: "What should Proudly call you?",
         subtitle: "We’ll keep it personal and gentle."
       ) {
-        TextField("Arnolfo", text: $viewModel.userName)
+        TextField("John Doe", text: $viewModel.userName)
           .textInputAutocapitalization(.words)
           .padding(18)
           .proudlyGlass(cornerRadius: 20)
@@ -452,6 +452,12 @@ struct OnboardingFlowView: View {
                   .foregroundStyle(viewModel.selectedColor)
               }
               .offset(x: 8, y: 8)
+            } else if viewModel.selectedIcon.isHabitEmoji {
+              Image(systemName: "plus")
+                .font(.system(size: 10, weight: .bold))
+                .foregroundStyle(.white)
+                .shadow(color: .black.opacity(0.18), radius: 3, y: 1)
+                .offset(x: 8, y: 8)
             }
           }
         } else {
