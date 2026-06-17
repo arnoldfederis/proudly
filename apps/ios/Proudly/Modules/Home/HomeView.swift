@@ -18,6 +18,7 @@ private enum HomeTab: Hashable {
 struct HomeView: View {
   @Environment(ThemeViewModel.self) private var theme
   @Environment(SubscriptionStore.self) private var subscriptionStore
+  @Environment(AppNavigationStore.self) private var appNavigationStore
   @State private var selectedTab: HomeTab = .today
 
   var body: some View {
@@ -40,6 +41,10 @@ struct HomeView: View {
     .tint(theme.activeTheme.accentColor)
     .onChange(of: selectedTab) { oldValue, newValue in
       Haptics.selection()
+    }
+    .onChange(of: appNavigationStore.pendingHabitID, initial: true) { _, pendingHabitID in
+      guard pendingHabitID != nil else { return }
+      selectedTab = .today
     }
   }
 }

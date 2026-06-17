@@ -7,6 +7,8 @@
 
 import SwiftData
 import SwiftUI
+import UIKit
+import UserNotifications
 
 @MainActor
 @Observable
@@ -45,12 +47,66 @@ final class ToastCenter {
   }
 }
 
+@MainActor
+@Observable
+final class AppNavigationStore {
+  static let shared = AppNavigationStore()
+
+  var pendingHabitID: UUID?
+
+  func openHabit(id: UUID) {
+    pendingHabitID = id
+  }
+
+  func consumePendingHabitID() {
+    pendingHabitID = nil
+  }
+}
+
+final class NotificationAppDelegate: NSObject, UIApplicationDelegate,
+  UNUserNotificationCenterDelegate
+{
+  func application(
+    _ application: UIApplication,
+    didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
+  ) -> Bool {
+    UNUserNotificationCenter.current().delegate = self
+    return true
+  }
+
+  func userNotificationCenter(
+    _ center: UNUserNotificationCenter,
+    didReceive response: UNNotificationResponse
+  ) async {
+    guard let habitID = Self.habitID(from: response.notification) else { return }
+    await MainActor.run {
+      AppNavigationStore.shared.openHabit(id: habitID)
+    }
+  }
+
+  private static func habitID(from notification: UNNotification) -> UUID? {
+    if let habitIDString = notification.request.content.userInfo["habitID"] as? String,
+      let habitID = UUID(uuidString: habitIDString)
+    {
+      return habitID
+    }
+
+    let identifierParts = notification.request.identifier.split(separator: "-")
+    guard identifierParts.count >= 6 else { return nil }
+    let uuidString = identifierParts.dropLast().joined(separator: "-")
+      .replacingOccurrences(of: "proudly.habit.", with: "")
+    return UUID(uuidString: uuidString)
+  }
+}
+
 @main
 struct ProudlyApp: App {
+  @UIApplicationDelegateAdaptor(NotificationAppDelegate.self) private var notificationAppDelegate
   @State private var themeViewModel = ThemeViewModel()
   @State private var toastCenter: ToastCenter
   @State private var subscriptionStore: SubscriptionStore
   @State private var habitRepository: HabitRepository
+  @State private var appNavigationStore = AppNavigationStore.shared
 
   let sharedModelContainer: ModelContainer
 
@@ -78,6 +134,7 @@ struct ProudlyApp: App {
         .environment(toastCenter)
         .environment(subscriptionStore)
         .environment(habitRepository)
+        .environment(appNavigationStore)
     }
     .modelContainer(sharedModelContainer)
   }

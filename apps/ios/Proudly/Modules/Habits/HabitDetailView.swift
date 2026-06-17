@@ -86,7 +86,6 @@ struct HabitDetailView: View {
         .tint(habit.color)
       }
     }
-    .toolbarVisibility(.hidden, for: .tabBar)
     .sheet(isPresented: $isEditPresented) {
       HabitFormView(habit: habit) { updatedHabit in
         habit = updatedHabit

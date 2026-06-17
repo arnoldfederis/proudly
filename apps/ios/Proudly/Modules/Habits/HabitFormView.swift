@@ -22,7 +22,7 @@ private enum HabitReminderMode: String, CaseIterable, Identifiable {
     case .basedOnTarget:
       return "Based on daily target"
     case .customFirstTime:
-      return "Custom first reminder"
+      return "Custom reminder times"
     }
   }
 
@@ -33,7 +33,7 @@ private enum HabitReminderMode: String, CaseIterable, Identifiable {
     case .basedOnTarget:
       return "Spread reminders gently through the day."
     case .customFirstTime:
-      return "Pick the first reminder time yourself."
+      return "Pick each reminder time yourself."
     }
   }
 }
@@ -54,7 +54,7 @@ struct HabitFormView: View {
   @State private var selectedTargetCount: Int
   @State private var customTargetCount: Int
   @State private var reminderMode: HabitReminderMode
-  @State private var reminderTime: Date
+  @State private var customReminderTimes: [Date]
   @State private var isSaving = false
   @State private var permissionMessage: String?
 
@@ -70,7 +70,6 @@ struct HabitFormView: View {
 
     let iconOptions = Self.iconOptions
     let colorOptions = Self.colorOptions
-    let reminderDate = NotificationManager.reminderDate(from: habit?.reminderTimes.first)
 
     let selectedIcon = {
       guard let icon = habit?.icon.trimmingCharacters(in: .whitespacesAndNewlines), !icon.isEmpty
@@ -85,6 +84,8 @@ struct HabitFormView: View {
     let target = habit?.dailyTargetCount ?? 1
     let selectedTargetCount = (1...4).contains(target) ? target : 0
     let resolvedReminderMode = Self.resolveReminderMode(for: habit)
+    let initialCustomReminderTimes = Self.resolveCustomReminderDates(
+      for: habit, dailyTargetCount: target)
 
     _habitName = State(initialValue: habit?.name ?? "")
     _habitDescription = State(initialValue: habit?.note ?? "")
@@ -93,9 +94,9 @@ struct HabitFormView: View {
     _customColor = State(
       initialValue: selectedColorIndex == -1 ? fallbackColor : colorOptions[selectedColorIndex])
     _selectedTargetCount = State(initialValue: selectedTargetCount)
-    _customTargetCount = State(initialValue: selectedTargetCount == 0 ? target : 5)
+    _customTargetCount = State(initialValue: selectedTargetCount == 0 ? max(target, 4) : 5)
     _reminderMode = State(initialValue: resolvedReminderMode)
-    _reminderTime = State(initialValue: reminderDate)
+    _customReminderTimes = State(initialValue: initialCustomReminderTimes)
   }
 
   private static let iconOptions = [
@@ -112,7 +113,7 @@ struct HabitFormView: View {
   private var isCustomColor: Bool { selectedColorIndex == -1 }
   private var effectiveColor: Color { isCustomColor ? customColor : colors[selectedColorIndex] }
   private var effectiveDailyTargetCount: Int {
-    selectedTargetCount == 0 ? max(customTargetCount, 1) : selectedTargetCount
+    selectedTargetCount == 0 ? max(customTargetCount, 4) : selectedTargetCount
   }
   private var effectiveIcon: String {
     if selectedIcon.isHabitSFSymbol {
@@ -128,11 +129,14 @@ struct HabitFormView: View {
     case .basedOnTarget:
       return NotificationManager.defaultReminderTimes(for: effectiveDailyTargetCount)
     case .customFirstTime:
-      return NotificationManager.generatedReminderTimes(
-        for: effectiveDailyTargetCount,
-        firstTime: reminderTime
-      )
+      return normalizedCustomReminderTimes
     }
+  }
+
+  private var normalizedCustomReminderTimes: [String] {
+    customReminderTimes
+      .prefix(effectiveDailyTargetCount)
+      .map(NotificationManager.timeString(from:))
   }
 
   private var showsReminderPicker: Bool {
@@ -198,6 +202,16 @@ struct HabitFormView: View {
       }
     }
     .preferredColorScheme(theme.activeTheme == .midnightCalm ? .dark : nil)
+    .onChange(of: selectedTargetCount) { _, _ in
+      synchronizeCustomReminderTimes()
+    }
+    .onChange(of: customTargetCount) { _, _ in
+      synchronizeCustomReminderTimes()
+    }
+    .onChange(of: reminderMode) { _, newValue in
+      guard newValue == .customFirstTime else { return }
+      synchronizeCustomReminderTimes()
+    }
   }
 
   private var iconSection: some View {
@@ -339,8 +353,10 @@ struct HabitFormView: View {
 
           Spacer()
 
-          Stepper("", value: $customTargetCount, in: 1...8)
+          Stepper("", value: $customTargetCount, in: 4...8)
             .labelsHidden()
+            .disabled(selectedTargetCount != 0)
+            .opacity(selectedTargetCount == 0 ? 1 : 0.45)
         }
         .padding(16)
         .frame(maxWidth: .infinity)
@@ -401,23 +417,39 @@ struct HabitFormView: View {
         if showsReminderPicker || showsReminderPreview {
           VStack(alignment: .leading, spacing: 10) {
             if showsReminderPicker {
-              DatePicker(
-                "First reminder",
-                selection: $reminderTime,
-                displayedComponents: .hourAndMinute
-              )
-              .datePickerStyle(.compact)
+              VStack(alignment: .leading, spacing: 12) {
+                ForEach(
+                  Array(customReminderTimes.prefix(effectiveDailyTargetCount).indices), id: \.self
+                ) { index in
+                  DatePicker(
+                    reminderPickerTitle(for: index),
+                    selection: Binding(
+                      get: { customReminderTimes[index] },
+                      set: { updateCustomReminderTime(at: index, to: $0) }
+                    ),
+                    displayedComponents: .hourAndMinute
+                  )
+                  .datePickerStyle(.compact)
+                }
+
+                Text("Later reminders stay after the earlier ones.")
+                  .font(.caption)
+                  .foregroundStyle(.secondary)
+              }
             }
 
             if showsReminderPreview {
-              Text("Planned reminders")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.secondary)
+              VStack(alignment: .leading) {
+                Text("Planned reminders")
+                  .font(.caption.weight(.semibold))
+                  .foregroundStyle(.secondary)
 
-              Text(reminderTimes.joined(separator: "  •  "))
-                .font(.caption.weight(.medium))
-                .foregroundStyle(.secondary)
-                .contentTransition(.numericText())
+                Text(reminderTimes.joined(separator: "  •  "))
+                  .font(.caption.weight(.medium))
+                  .foregroundStyle(.secondary)
+                  .contentTransition(.numericText())
+              }
+              .frame(maxWidth: .infinity, alignment: .leading)
             }
           }
           .padding(16)
@@ -506,6 +538,99 @@ struct HabitFormView: View {
       return "bell.badge"
     case .customFirstTime:
       return "clock"
+    }
+  }
+
+  private func reminderPickerTitle(for index: Int) -> String {
+    let ordinalTitles = [
+      "First", "Second", "Third", "Fourth", "Fifth", "Sixth", "Seventh", "Eighth",
+    ]
+
+    if index < ordinalTitles.count {
+      return ordinalTitles[index] + " reminder"
+    }
+
+    return "Reminder \(index + 1)"
+  }
+
+  private func synchronizeCustomReminderTimes() {
+    let count = max(effectiveDailyTargetCount, 1)
+
+    if customReminderTimes.count > count {
+      customReminderTimes = Array(customReminderTimes.prefix(count))
+      return
+    }
+
+    if customReminderTimes.count < count {
+      var updatedTimes = customReminderTimes
+      while updatedTimes.count < count {
+        updatedTimes.append(nextCustomReminderDate(after: updatedTimes.last))
+      }
+      customReminderTimes = updatedTimes
+    }
+  }
+
+  private func updateCustomReminderTime(at index: Int, to newValue: Date) {
+    guard customReminderTimes.indices.contains(index) else { return }
+
+    var updatedTimes = customReminderTimes
+    let minimumDate = minimumCustomReminderDate(for: index, in: updatedTimes)
+    updatedTimes[index] = max(newValue, minimumDate)
+
+    if index < updatedTimes.index(before: updatedTimes.endIndex) {
+      for followingIndex in (index + 1)..<updatedTimes.count {
+        let nextMinimumDate = minimumCustomReminderDate(for: followingIndex, in: updatedTimes)
+        if updatedTimes[followingIndex] < nextMinimumDate {
+          updatedTimes[followingIndex] = nextMinimumDate
+        }
+      }
+    }
+
+    customReminderTimes = updatedTimes
+  }
+
+  private func minimumCustomReminderDate(for index: Int, in times: [Date]) -> Date {
+    guard index > 0, times.indices.contains(index - 1) else {
+      return NotificationManager.reminderDate(from: "00:00")
+    }
+
+    return Calendar.current.date(byAdding: .minute, value: 1, to: times[index - 1])
+      ?? times[index - 1]
+  }
+
+  private func nextCustomReminderDate(after previousDate: Date?) -> Date {
+    let anchorDate = previousDate ?? NotificationManager.reminderDate(from: "09:00")
+    return Calendar.current.date(byAdding: .hour, value: 1, to: anchorDate) ?? anchorDate
+  }
+
+  private static func resolveCustomReminderDates(for habit: Habit?, dailyTargetCount: Int) -> [Date]
+  {
+    let reminderDates = (habit?.reminderTimes ?? []).map(NotificationManager.reminderDate(from:))
+
+    guard !reminderDates.isEmpty else {
+      return defaultCustomReminderDates(for: dailyTargetCount)
+    }
+
+    let targetCount = max(dailyTargetCount, 1)
+    if reminderDates.count >= targetCount {
+      return Array(reminderDates.prefix(targetCount))
+    }
+
+    var updatedDates = reminderDates
+    while updatedDates.count < targetCount {
+      let anchorDate = updatedDates.last ?? NotificationManager.reminderDate(from: "09:00")
+      updatedDates.append(
+        Calendar.current.date(byAdding: .hour, value: 1, to: anchorDate) ?? anchorDate)
+    }
+    return updatedDates
+  }
+
+  private static func defaultCustomReminderDates(for dailyTargetCount: Int) -> [Date] {
+    let targetCount = max(dailyTargetCount, 1)
+    let startDate = NotificationManager.reminderDate(from: "09:00")
+
+    return (0..<targetCount).compactMap { index in
+      Calendar.current.date(byAdding: .hour, value: index, to: startDate)
     }
   }
 

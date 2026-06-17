@@ -11,6 +11,7 @@ struct TodayView: View {
   @Environment(ThemeViewModel.self) private var theme
   @Environment(SubscriptionStore.self) private var subscriptionStore
   @Environment(HabitRepository.self) private var repository
+  @Environment(AppNavigationStore.self) private var appNavigationStore
   @State private var selectedHabit: Habit?
   @State private var isAddPresented: Bool = false
   @State private var isPaywallPresented: Bool = false
@@ -83,6 +84,7 @@ struct TodayView: View {
     .onAppear {
       displayedCompletedCount = repositoryCompletedCount
       showsCelebrationCard = displayedCompletedCount > 0
+      navigateToPendingHabitIfNeeded()
     }
     .onChange(of: completedCount) { _, newValue in
       withAnimation(.spring(response: 0.42, dampingFraction: 0.8)) {
@@ -99,6 +101,11 @@ struct TodayView: View {
         displayedCompletedCount = actualCompletedCount
         isAwaitingCompletedCountSync = false
       }
+
+      navigateToPendingHabitIfNeeded()
+    }
+    .onChange(of: appNavigationStore.pendingHabitID, initial: true) { _, _ in
+      navigateToPendingHabitIfNeeded()
     }
   }
 
@@ -181,6 +188,17 @@ struct TodayView: View {
     } else {
       isAddPresented = true
     }
+  }
+
+  private func navigateToPendingHabitIfNeeded() {
+    guard let pendingHabitID = appNavigationStore.pendingHabitID,
+      let pendingHabit = repository.activeHabits.first(where: { $0.id == pendingHabitID })
+    else {
+      return
+    }
+
+    selectedHabit = pendingHabit
+    appNavigationStore.consumePendingHabitID()
   }
 
   private func toggleHabit(_ habit: Habit) {

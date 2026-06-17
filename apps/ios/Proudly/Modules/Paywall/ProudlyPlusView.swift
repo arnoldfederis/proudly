@@ -51,7 +51,7 @@ struct ProudlyPlusView: View {
   var body: some View {
     NavigationStack {
       ZStack {
-        paywallBackground
+        AnimatedAmbientBackground(gradientColors: backgroundGradientColors)
 
         ScrollView {
           LazyVStack(spacing: 18) {
@@ -83,9 +83,6 @@ struct ProudlyPlusView: View {
           }
         }
       }
-      .safeAreaInset(edge: .bottom) {
-        bottomActionBar
-      }
     }
     .task {
       subscriptionStore.configureIfNeeded()
@@ -113,58 +110,23 @@ struct ProudlyPlusView: View {
     }
   }
 
-  private var paywallBackground: some View {
-    ZStack {
-      LinearGradient(
-        colors: backgroundGradientColors,
-        startPoint: .topLeading,
-        endPoint: .bottomTrailing
-      )
-      .ignoresSafeArea()
-
-      Circle()
-        .fill(ProudlyTheme.purple.opacity(0.12))
-        .frame(width: 260, height: 260)
-        .blur(radius: 36)
-        .offset(x: -120, y: -320)
-
-      Circle()
-        .fill(ProudlyTheme.blue.opacity(0.12))
-        .frame(width: 220, height: 220)
-        .blur(radius: 28)
-        .offset(x: 140, y: -180)
-
-      Circle()
-        .fill(ProudlyTheme.pink.opacity(0.10))
-        .frame(width: 220, height: 220)
-        .blur(radius: 28)
-        .offset(x: 120, y: 220)
-    }
-  }
-
   private var heroSection: some View {
     VStack(spacing: 14) {
       ZStack {
         Circle()
-          .fill(heroCircleFill)
-          .frame(width: 116, height: 116)
-          .overlay {
-            Circle()
-              .strokeBorder(heroCircleStroke, lineWidth: 1)
-          }
-          .shadow(
-            color: ProudlyTheme.purple.opacity(colorScheme == .dark ? 0.20 : 0.08), radius: 30,
-            y: 12)
-
-        Image(systemName: subscriptionStore.hasProudlyPlus ? "heart.circle.fill" : "trophy.fill")
-          .font(.system(size: 46, weight: .medium))
-          .foregroundStyle(
+          .fill(
             LinearGradient(
-              colors: [ProudlyTheme.purple, ProudlyTheme.pink, ProudlyTheme.blue],
+              colors: [ProudlyTheme.purple.opacity(0.22), ProudlyTheme.blue.opacity(0.16)],
               startPoint: .topLeading,
               endPoint: .bottomTrailing
             )
           )
+          .frame(width: 118, height: 118)
+
+        Image("AppIcon")
+          .resizable()
+          .scaledToFit()
+          .frame(width: 110, height: 110)
       }
       .padding(.top, 10)
 
@@ -302,6 +264,10 @@ struct ProudlyPlusView: View {
     VStack(alignment: .leading, spacing: 14) {
       Text("Choose your plan")
         .font(.system(size: 20, weight: .bold))
+
+      Text("Cancel anytime. Your progress stays yours.")
+        .font(.caption)
+        .foregroundStyle(.secondary)
 
       if let yearlyPackage = subscriptionStore.yearlyPackage {
         SubscriptionPackageButton(
@@ -447,6 +413,23 @@ struct ProudlyPlusView: View {
         if let privacyPolicyURL {
           Link("Privacy", destination: privacyPolicyURL)
         }
+
+        Button {
+          Task {
+            _ = await subscriptionStore.restorePurchases()
+          }
+        } label: {
+          if subscriptionStore.isRestoreInProgress {
+            ProgressView()
+              .tint(.secondary)
+              .frame(maxWidth: .infinity)
+              .padding(.vertical, 6)
+          } else {
+            Text("Restore Purchases")
+          }
+        }
+        .buttonStyle(.plain)
+        .disabled(subscriptionStore.isRestoreInProgress || subscriptionStore.isPurchaseInProgress)
       }
       .font(.caption)
       .foregroundStyle(footerForegroundColor)

@@ -51,6 +51,7 @@ final class NotificationManager {
         ? "A small step counts. Check in with \(habit.name)."
         : "A small win is waiting for you."
       content.sound = .default
+      content.userInfo = ["habitID": habit.id.uuidString]
 
       let trigger = UNCalendarNotificationTrigger(
         dateMatching: DateComponents(hour: components.hour, minute: components.minute),
@@ -85,8 +86,10 @@ final class NotificationManager {
       return ["09:00", "18:00"]
     case 3:
       return ["09:00", "14:00", "19:00"]
-    default:
+    case 4:
       return ["08:00", "12:00", "16:00", "20:00"]
+    default:
+      return evenlyDistributedReminderTimes(for: dailyTargetCount)
     }
   }
 
@@ -105,6 +108,25 @@ final class NotificationManager {
   static func timeString(from date: Date) -> String {
     let components = Calendar.current.dateComponents([.hour, .minute], from: date)
     return String(format: "%02d:%02d", components.hour ?? 9, components.minute ?? 0)
+  }
+
+  private static func evenlyDistributedReminderTimes(for dailyTargetCount: Int) -> [String] {
+    let count = max(dailyTargetCount, 1)
+    let startMinutes = 8 * 60
+    let endMinutes = 20 * 60
+
+    guard count > 1 else {
+      return ["09:00"]
+    }
+
+    let step = Double(endMinutes - startMinutes) / Double(count - 1)
+
+    return (0..<count).map { index in
+      let totalMinutes = Int((Double(startMinutes) + (step * Double(index))).rounded())
+      let hour = totalMinutes / 60
+      let minute = totalMinutes % 60
+      return String(format: "%02d:%02d", hour, minute)
+    }
   }
 
   static func reminderDate(from timeString: String?) -> Date {
