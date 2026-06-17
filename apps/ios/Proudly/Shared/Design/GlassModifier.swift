@@ -11,7 +11,12 @@ extension View {
   /// Applies the standard Proudly Liquid Glass card style.
   /// Glass appearance (opacity, tint, blur) is governed by the system's
   /// Reduce Transparency / Increase Contrast accessibility settings.
+  @ViewBuilder
   func proudlyGlass(cornerRadius: CGFloat = 22) -> some View {
-    glassEffect(.regular, in: RoundedRectangle(cornerRadius: cornerRadius))
+    if #available(iOS 26.0, *) {
+      glassEffect(.regular, in: RoundedRectangle(cornerRadius: cornerRadius))
+    } else {
+      background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: cornerRadius))
+    }
   }
 }

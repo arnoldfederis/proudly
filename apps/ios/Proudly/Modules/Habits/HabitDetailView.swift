@@ -78,7 +78,10 @@ struct HabitDetailView: View {
         }
       }
 
-      ToolbarSpacer(.fixed, placement: .topBarTrailing)
+      if #available(iOS 26.0, *) {
+        ToolbarSpacer(.fixed, placement: .topBarTrailing)
+      }
+
       ToolbarItem(placement: .topBarTrailing) {
         Button(action: presentEditHabit) {
           Label("Edit Habit", systemImage: "pencil")

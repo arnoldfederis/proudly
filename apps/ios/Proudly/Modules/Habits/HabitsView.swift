@@ -76,7 +76,9 @@ struct HabitsView: View {
         ToolbarItem(placement: .topBarTrailing) {
           filterToolbar
         }
-        ToolbarSpacer(.fixed, placement: .topBarTrailing)
+        if #available(iOS 26.0, *) {
+          ToolbarSpacer(.fixed, placement: .topBarTrailing)
+        }
         ToolbarItem(placement: .topBarTrailing) {
           Button(action: presentAddHabit) {
             Image(systemName: "plus")

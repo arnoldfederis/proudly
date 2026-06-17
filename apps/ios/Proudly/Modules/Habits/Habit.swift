@@ -56,6 +56,9 @@ extension Habit: Hashable {
     lhs.id == rhs.id
       && lhs.name == rhs.name
       && lhs.icon == rhs.icon
+      && lhs.color == rhs.color
+      && lhs.streak == rhs.streak
+      && lhs.bestStreak == rhs.bestStreak
       && lhs.note == rhs.note
       && lhs.dailyTargetCount == rhs.dailyTargetCount
       && lhs.completedCountToday == rhs.completedCountToday
