@@ -22,19 +22,21 @@ final class ToastCenter {
   var toasts: [Toast] = []
 
   private var dismissalTasks: [UUID: Task<Void, Never>] = [:]
+  private let toastDuration: Duration = .seconds(2)
 
   func show(message: String, symbol: String = "checkmark.circle.fill") {
+    if let existingToast = toasts.last(where: { $0.message == message && $0.symbol == symbol }) {
+      scheduleDismissal(for: existingToast)
+      return
+    }
+
     let toast = Toast(message: message, symbol: symbol)
 
     withAnimation(.spring(response: 0.34, dampingFraction: 0.82)) {
       toasts.append(toast)
     }
 
-    dismissalTasks[toast.id]?.cancel()
-    dismissalTasks[toast.id] = Task { [weak self] in
-      try? await Task.sleep(for: .seconds(2))
-      self?.dismiss(id: toast.id)
-    }
+    scheduleDismissal(for: toast)
   }
 
   func dismiss(id: UUID) {
@@ -43,6 +45,15 @@ final class ToastCenter {
 
     withAnimation(.spring(response: 0.3, dampingFraction: 0.86)) {
       toasts.removeAll { $0.id == id }
+    }
+  }
+
+  private func scheduleDismissal(for toast: Toast) {
+    dismissalTasks[toast.id]?.cancel()
+    let toastDuration = self.toastDuration
+    dismissalTasks[toast.id] = Task { [weak self] in
+      try? await Task.sleep(for: toastDuration)
+      self?.dismiss(id: toast.id)
     }
   }
 }
@@ -207,7 +218,7 @@ private struct RootView: View {
   }
 }
 
-private struct ToastBannerView: View {
+struct ToastBannerView: View {
   let toast: ToastCenter.Toast
 
   var body: some View {

@@ -12,6 +12,8 @@ struct OnboardingView: View {
   @Environment(\.colorScheme) private var colorScheme
   var onGetStarted: () -> Void = {}
 
+  @State private var isLoading = false
+
   private let features: [(icon: String, text: String, color: Color)] = [
     ("checkmark.circle.fill", "Track small wins", ProudlyTheme.mint),
     ("flame.fill", "Build gentle streaks", ProudlyTheme.pink),
@@ -95,16 +97,30 @@ struct OnboardingView: View {
           .frame(maxWidth: .infinity, alignment: .center)
           .multilineTextAlignment(.center)
 
-        Button(action: onGetStarted) {
-          Text("Get Started")
-            .font(.system(size: 17, weight: .semibold))
-            .foregroundStyle(.white)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 17)
-            .background(ProudlyTheme.purplePinkGradient)
-            .clipShape(RoundedRectangle(cornerRadius: 20))
+        Button {
+          isLoading = true
+          Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(500))
+            onGetStarted()
+          }
+        } label: {
+          Group {
+            if isLoading {
+              ProgressView()
+                .tint(.white)
+            } else {
+              Text("Get Started")
+                .font(.system(size: 17, weight: .semibold))
+            }
+          }
+          .foregroundStyle(.white)
+          .frame(maxWidth: .infinity)
+          .padding(.vertical, 17)
+          .background(ProudlyTheme.purplePinkGradient)
+          .clipShape(RoundedRectangle(cornerRadius: 20))
         }
         .buttonStyle(.plain)
+        .disabled(isLoading)
         .padding(.horizontal, 20)
         .padding(.top, 12)
         .padding(.bottom, 28)

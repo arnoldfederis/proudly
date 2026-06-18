@@ -10,7 +10,6 @@ import SwiftUI
 struct ThemeView: View {
   @Environment(ThemeViewModel.self) private var theme
   @Environment(SubscriptionStore.self) private var subscriptionStore
-  @Environment(\.dismiss) private var dismiss
   var onLockedThemeTapped: () -> Void = {}
 
   var body: some View {
@@ -29,11 +28,6 @@ struct ThemeView: View {
       }
       .navigationTitle("Theme")
       .navigationBarTitleDisplayMode(.large)
-      .toolbar {
-        ToolbarItem(placement: .confirmationAction) {
-          Button("Done") { dismiss() }
-        }
-      }
     }
     .preferredColorScheme(theme.activeTheme == .midnightCalm ? .dark : SystemAppearance.colorScheme)
     .onAppear {

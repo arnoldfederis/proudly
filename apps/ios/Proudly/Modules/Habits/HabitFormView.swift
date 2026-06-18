@@ -57,6 +57,7 @@ struct HabitFormView: View {
   @State private var customReminderTimes: [Date]
   @State private var isSaving = false
   @State private var permissionMessage: String?
+  @FocusState private var descriptionFocused: Bool
 
   private let icons = Self.iconOptions
   private let colors: [Color] = [
@@ -266,6 +267,13 @@ struct HabitFormView: View {
         .lineLimit(3, reservesSpace: true)
         .padding(14)
         .proudlyGlass(cornerRadius: 14)
+        .focused($descriptionFocused)
+        .toolbar {
+          ToolbarItemGroup(placement: .keyboard) {
+            Spacer()
+            Button("Done") { descriptionFocused = false }
+          }
+        }
     }
   }
 

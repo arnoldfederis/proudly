@@ -5,8 +5,29 @@
 //  Created by Arnolfo Federis on 6/13/26.
 //
 
+import Foundation
+
 enum RevenueCatConfig {
-  static let apiKey = "test_cJXKdKYIizvLHRsdvGkoxEHefYx"
+  static var apiKey: String {
+    guard
+      let apiKey = Bundle.main.object(forInfoDictionaryKey: "RevenueCatAPIKey") as? String
+    else {
+      fatalError("Missing RevenueCatAPIKey in Info.plist.")
+    }
+
+    let trimmedApiKey = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard
+      !trimmedApiKey.isEmpty,
+      trimmedApiKey != "__MISSING_REVENUECAT_API_KEY__",
+      !trimmedApiKey.hasPrefix("$(")
+    else {
+      fatalError(
+        "RevenueCatAPIKey is not configured. Set REVENUECAT_API_KEY in Proudly/Configurations/Secrets.xcconfig."
+      )
+    }
+
+    return trimmedApiKey
+  }
 
   /// This identifier must match the entitlement identifier in RevenueCat.
   static let proudlyPlusEntitlementID = "Proudly Plus"

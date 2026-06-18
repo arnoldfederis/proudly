@@ -207,7 +207,7 @@ final class OnboardingViewModel {
       reminderTimes: remindersAuthorized ? resolvedReminderTimes : []
     )
 
-    repository.addHabit(habit, markSeeded: true)
+    repository.addHabit(habit, markSeeded: true, showsToast: false)
     isSaving = false
     currentStep = .celebration
   }

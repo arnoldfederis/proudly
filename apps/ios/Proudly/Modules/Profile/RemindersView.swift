@@ -36,7 +36,6 @@ struct RemindersView: View {
       }
     }
     .navigationTitle("Reminders")
-    .navigationBarTitleDisplayMode(.inline)
   }
 
   private var summaryCard: some View {

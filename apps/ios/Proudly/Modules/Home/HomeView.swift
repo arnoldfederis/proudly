@@ -20,6 +20,7 @@ struct HomeView: View {
   @Environment(SubscriptionStore.self) private var subscriptionStore
   @Environment(AppNavigationStore.self) private var appNavigationStore
   @State private var selectedTab: HomeTab = .today
+  @State private var showPaywall = false
 
   var body: some View {
     if #available(iOS 18.0, *) {
@@ -30,10 +31,8 @@ struct HomeView: View {
         Tab("Habits", systemImage: "checkmark.rectangle.stack", value: .habits) {
           HabitsView()
         }
-        if subscriptionStore.hasProudlyPlus {
-          Tab("Insights", systemImage: "chart.bar", value: .insights) {
-            InsightsView()
-          }
+        Tab("Insights", systemImage: "chart.bar", value: .insights) {
+          InsightsView()
         }
         Tab("Profile", systemImage: "person.crop.circle", value: .profile) {
           ProfileView()
@@ -41,47 +40,53 @@ struct HomeView: View {
       }
       .tint(theme.activeTheme.accentColor)
       .onChange(of: selectedTab) { oldValue, newValue in
-        Haptics.selection()
+        if newValue == .insights && !subscriptionStore.hasProudlyPlus {
+          selectedTab = oldValue
+          showPaywall = true
+        } else {
+          Haptics.selection()
+        }
       }
       .onChange(of: appNavigationStore.pendingHabitID, initial: true) { _, pendingHabitID in
         guard pendingHabitID != nil else { return }
         selectedTab = .today
+      }
+      .sheet(isPresented: $showPaywall) {
+        ProudlyPlusView()
       }
     } else {
       TabView(selection: $selectedTab) {
         TodayView()
-          .tabItem {
-            Label("Today", systemImage: "bolt.house")
-          }
+          .tabItem { Label("Today", systemImage: "bolt.house") }
           .tag(HomeTab.today)
 
         HabitsView()
-          .tabItem {
-            Label("Habits", systemImage: "checkmark.rectangle.stack")
-          }
+          .tabItem { Label("Habits", systemImage: "checkmark.rectangle.stack") }
           .tag(HomeTab.habits)
 
-        if subscriptionStore.hasProudlyPlus {
-          InsightsView()
-            .tabItem {
-              Label("Insights", systemImage: "chart.bar")
-            }
-            .tag(HomeTab.insights)
-        }
+        InsightsView()
+          .tabItem { Label("Insights", systemImage: "chart.bar") }
+          .tag(HomeTab.insights)
 
         ProfileView()
-          .tabItem {
-            Label("Profile", systemImage: "person.crop.circle")
-          }
+          .tabItem { Label("Profile", systemImage: "person.crop.circle") }
           .tag(HomeTab.profile)
       }
       .tint(theme.activeTheme.accentColor)
       .onChange(of: selectedTab) { oldValue, newValue in
-        Haptics.selection()
+        if newValue == .insights && !subscriptionStore.hasProudlyPlus {
+          selectedTab = oldValue
+          showPaywall = true
+        } else {
+          Haptics.selection()
+        }
       }
       .onChange(of: appNavigationStore.pendingHabitID, initial: true) { _, pendingHabitID in
         guard pendingHabitID != nil else { return }
         selectedTab = .today
+      }
+      .sheet(isPresented: $showPaywall) {
+        ProudlyPlusView()
       }
     }
   }
@@ -92,4 +97,5 @@ struct HomeView: View {
     .environment(ThemeViewModel())
     .environment(SubscriptionStore())
     .environment(HabitRepository.preview)
+    .environment(AppNavigationStore.shared)
 }

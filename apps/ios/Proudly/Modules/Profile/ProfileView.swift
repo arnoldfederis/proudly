@@ -5,19 +5,23 @@
 //  Created by Arnolfo Federis on 6/9/26.
 //
 
-import RevenueCatUI
 import SwiftUI
 
 struct ProfileView: View {
   @Environment(ThemeViewModel.self) private var theme
   @Environment(SubscriptionStore.self) private var subscriptionStore
   @Environment(HabitRepository.self) private var repository
+  @Environment(ToastCenter.self) private var toastCenter
+  @Environment(\.openURL) private var openURL
   @State private var showPaywall = false
   @State private var showICloudAlert = false
   @State private var showThemeView = false
-  @State private var showCustomerCenter = false
+  @State private var showSubscriptionManagement = false
   @State private var navigateToProudMoments = false
   @State private var navigateToReminders = false
+
+  private let termsURL = URL(string: "https://proudly.app/terms")
+  private let privacyURL = URL(string: "https://proudly.app/privacy")
 
   var body: some View {
     NavigationStack {
@@ -40,11 +44,14 @@ struct ProfileView: View {
       .sheet(isPresented: $showPaywall) {
         ProudlyPlusView()
       }
-      .sheet(isPresented: $showThemeView) {
+      .navigationDestination(isPresented: $showThemeView) {
         ThemeView(onLockedThemeTapped: {
           showThemeView = false
           showPaywall = true
         })
+      }
+      .navigationDestination(isPresented: $showSubscriptionManagement) {
+        SubscriptionManagementView()
       }
       .navigationDestination(isPresented: $navigateToProudMoments) {
         ProudMomentsView()
@@ -52,7 +59,6 @@ struct ProfileView: View {
       .navigationDestination(isPresented: $navigateToReminders) {
         RemindersView()
       }
-      .presentCustomerCenter(isPresented: $showCustomerCenter)
     }
   }
 
@@ -97,18 +103,13 @@ struct ProfileView: View {
         Spacer()
 
         if subscriptionStore.hasProudlyPlus {
-          Button {
-            showCustomerCenter = true
-          } label: {
-            Text("Manage")
-              .font(.system(size: 13, weight: .bold))
-              .foregroundStyle(theme.activeTheme.accentColor)
-              .padding(.horizontal, 16)
-              .padding(.vertical, 8)
-              .background(theme.activeTheme.accentColor.opacity(0.12))
-              .clipShape(Capsule())
-          }
-          .buttonStyle(.plain)
+          Text("Active")
+            .font(.system(size: 13, weight: .bold))
+            .foregroundStyle(theme.activeTheme.accentColor)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+            .background(theme.activeTheme.accentColor.opacity(0.12))
+            .clipShape(Capsule())
         } else {
           Button {
             showPaywall = true
@@ -157,7 +158,6 @@ struct ProfileView: View {
             Text(reminderSummary)
               .font(.subheadline)
               .foregroundStyle(.secondary)
-
             Image(systemName: "chevron.right")
               .font(.caption2)
               .foregroundStyle(.tertiary)
@@ -181,7 +181,6 @@ struct ProfileView: View {
               Text(theme.selectedTheme.displayName)
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
-
               Image(systemName: "chevron.right")
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
@@ -196,23 +195,20 @@ struct ProfileView: View {
       Divider().padding(.leading, 56).opacity(0.4)
 
       Button {
-        if subscriptionStore.hasProudlyPlus {
-          showCustomerCenter = true
-        } else {
-          showPaywall = true
-        }
+        showSubscriptionManagement = true
       } label: {
         ProfileRow(
           icon: "creditcard.fill",
-          label: subscriptionStore.hasProudlyPlus ? "Manage Subscription" : "Subscription",
+          label: "Subscription",
           color: theme.activeTheme.accentColor
         ) {
-          if subscriptionStore.hasProudlyPlus {
+          HStack(spacing: 6) {
+            Text(subscriptionStore.hasProudlyPlus ? "Plus" : "Free")
+              .font(.subheadline)
+              .foregroundStyle(.secondary)
             Image(systemName: "chevron.right")
               .font(.caption2)
               .foregroundStyle(.tertiary)
-          } else {
-            PlusBadge()
           }
         }
       }
@@ -242,34 +238,95 @@ struct ProfileView: View {
     .proudlyGlass()
   }
 
+  private var legalSection: some View {
+    VStack(spacing: 0) {
+      Button {
+        Task {
+          let result = await subscriptionStore.restorePurchases()
+          switch result {
+          case .restoredPlus:
+            toastCenter.show(
+              message: "Subscription restored", symbol: "arrow.clockwise.circle.fill")
+          case .noActiveSubscription:
+            toastCenter.show(
+              message: "No active subscription found", symbol: "info.circle.fill")
+          case .failed:
+            break
+          }
+        }
+      } label: {
+        ProfileRow(icon: "arrow.clockwise", label: "Restore Purchases", color: .secondary) {
+          if subscriptionStore.isRestoreInProgress {
+            ProgressView()
+              .scaleEffect(0.8)
+          }
+        }
+      }
+      .buttonStyle(.plain)
+      .disabled(subscriptionStore.isRestoreInProgress)
+
+      Divider().padding(.leading, 56).opacity(0.4)
+
+      Button {
+        if let url = termsURL {
+          if #available(iOS 26.0, *) {
+            openURL(url, prefersInApp: true)
+          } else {
+            openURL(url)
+          }
+        }
+      } label: {
+        ProfileRow(icon: "doc.fill", label: "Terms of Use", color: .gray) {
+          Image(systemName: "chevron.right")
+            .font(.caption2)
+            .foregroundStyle(.tertiary)
+        }
+      }
+      .buttonStyle(.plain)
+
+      Divider().padding(.leading, 56).opacity(0.4)
+
+      Button {
+        if let url = privacyURL {
+          if #available(iOS 26.0, *) {
+            openURL(url, prefersInApp: true)
+          } else {
+            openURL(url)
+          }
+        }
+      } label: {
+        ProfileRow(icon: "hand.raised.fill", label: "Privacy Policy", color: .gray) {
+          Image(systemName: "chevron.right")
+            .font(.caption2)
+            .foregroundStyle(.tertiary)
+        }
+      }
+      .buttonStyle(.plain)
+
+      Divider().opacity(0.2)
+
+      Text(
+        "Billing is managed securely by Apple. You can manage or cancel your subscription anytime."
+      )
+      .font(.caption)
+      .foregroundStyle(.secondary)
+      .multilineTextAlignment(.center)
+      .padding(.horizontal, 16)
+      .padding(.vertical, 14)
+    }
+    .proudlyGlass()
+  }
+
   private var profileSummary: String {
     let habitCount = repository.activeHabits.count
     let longestStreak = repository.activeHabits.map(\.streak).max() ?? 0
     let habitLabel = habitCount == 1 ? "habit" : "habits"
-
     return "\(habitCount) \(habitLabel) · \(longestStreak.proudlyStreakLabel)"
   }
 
   private var reminderSummary: String {
     let count = repository.activeHabits.filter(\.remindersEnabled).count
     return count == 0 ? "Off" : count == 1 ? "1 active" : "\(count) active"
-  }
-
-  private var legalSection: some View {
-    VStack(spacing: 0) {
-      ProfileRow(icon: "questionmark.circle.fill", label: "Help Center", color: .gray) {
-        Image(systemName: "chevron.right").font(.caption2).foregroundStyle(.tertiary)
-      }
-      Divider().padding(.leading, 56).opacity(0.4)
-      ProfileRow(icon: "hand.raised.fill", label: "Privacy Policy", color: .gray) {
-        Image(systemName: "chevron.right").font(.caption2).foregroundStyle(.tertiary)
-      }
-      Divider().padding(.leading, 56).opacity(0.4)
-      ProfileRow(icon: "doc.fill", label: "Terms of Use", color: .gray) {
-        Image(systemName: "chevron.right").font(.caption2).foregroundStyle(.tertiary)
-      }
-    }
-    .proudlyGlass()
   }
 }
 
@@ -322,4 +379,5 @@ struct ProfileRow<Trailing: View>: View {
     .environment(ThemeViewModel())
     .environment(SubscriptionStore())
     .environment(HabitRepository.preview)
+    .environment(ToastCenter())
 }

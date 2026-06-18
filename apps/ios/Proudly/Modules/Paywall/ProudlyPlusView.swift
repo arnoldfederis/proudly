@@ -14,6 +14,7 @@ struct ProudlyPlusView: View {
   @Environment(\.colorScheme) private var colorScheme
   @Environment(ThemeViewModel.self) private var theme
   @Environment(SubscriptionStore.self) private var subscriptionStore
+  @Environment(ToastCenter.self) private var toastCenter
 
   @State private var showCustomerCenter = false
 
@@ -60,6 +61,9 @@ struct ProudlyPlusView: View {
             benefitsSection
             pricingSection
             footerSection
+            #if DEBUG
+              debugInfoSection
+            #endif
           }
           .padding(.horizontal, 20)
           .padding(.top, 12)
@@ -90,6 +94,19 @@ struct ProudlyPlusView: View {
       await subscriptionStore.refreshCustomerInfo()
     }
     .presentCustomerCenter(isPresented: $showCustomerCenter)
+    .overlay(alignment: .top) {
+      VStack(spacing: 10) {
+        ForEach(Array(toastCenter.toasts.suffix(3).enumerated()), id: \.element.id) {
+          index, toast in
+          ToastBannerView(toast: toast)
+            .padding(.horizontal, 20)
+            .scaleEffect(index == 0 ? 1 : 0.98)
+            .opacity(index == 0 ? 1 : 0.92)
+            .transition(.move(edge: .top).combined(with: .opacity))
+        }
+      }
+      .padding(.top, 8)
+    }
     .alert(
       subscriptionStore.presentedAlert?.title ?? "Subscription Error",
       isPresented: Binding(
@@ -246,7 +263,14 @@ struct ProudlyPlusView: View {
 
       Button {
         Task {
+          await subscriptionStore.refreshCustomerInfo()
           await subscriptionStore.loadOfferings()
+          if subscriptionStore.availablePackages.isEmpty {
+            toastCenter.show(
+              message: "Plans still aren't available. Please try again later.",
+              symbol: "exclamationmark.triangle.fill"
+            )
+          }
         }
       } label: {
         Text("Retry")
@@ -321,48 +345,6 @@ struct ProudlyPlusView: View {
     .frame(maxWidth: .infinity, alignment: .leading)
   }
 
-  private var bottomActionBar: some View {
-    VStack(spacing: 10) {
-      if !subscriptionStore.hasProudlyPlus {
-        primaryCTAButton
-      }
-
-      Button {
-        Task {
-          _ = await subscriptionStore.restorePurchases()
-        }
-      } label: {
-        if subscriptionStore.isRestoreInProgress {
-          ProgressView()
-            .tint(.secondary)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 6)
-        } else {
-          Text("Restore Purchases")
-            .font(.footnote.weight(.medium))
-            .foregroundStyle(.secondary)
-        }
-      }
-      .buttonStyle(.plain)
-      .disabled(subscriptionStore.isRestoreInProgress || subscriptionStore.isPurchaseInProgress)
-
-      if !subscriptionStore.hasProudlyPlus {
-        Text("Cancel anytime. Your progress stays yours.")
-          .font(.caption)
-          .foregroundStyle(.secondary)
-      }
-    }
-    .padding(.horizontal, 20)
-    .padding(.top, 16)
-    .padding(.bottom, 22)
-    .background(.ultraThinMaterial)
-    .overlay(alignment: .top) {
-      Rectangle()
-        .fill(bottomBarDivider)
-        .frame(height: 1)
-    }
-  }
-
   @ViewBuilder
   private var primaryCTAButton: some View {
     if let primaryPackage = subscriptionStore.yearlyPackage ?? subscriptionStore.monthlyPackage {
@@ -416,17 +398,21 @@ struct ProudlyPlusView: View {
 
         Button {
           Task {
-            _ = await subscriptionStore.restorePurchases()
+            let result = await subscriptionStore.restorePurchases()
+            switch result {
+            case .restoredPlus:
+              toastCenter.show(
+                message: "Subscription restored", symbol: "arrow.clockwise.circle.fill")
+              dismiss()
+            case .noActiveSubscription:
+              toastCenter.show(
+                message: "No active subscription found", symbol: "info.circle.fill")
+            case .failed:
+              break
+            }
           }
         } label: {
-          if subscriptionStore.isRestoreInProgress {
-            ProgressView()
-              .tint(.secondary)
-              .frame(maxWidth: .infinity)
-              .padding(.vertical, 6)
-          } else {
-            Text("Restore Purchases")
-          }
+          Text(subscriptionStore.isRestoreInProgress ? "Restoring..." : "Restore Purchases")
         }
         .buttonStyle(.plain)
         .disabled(subscriptionStore.isRestoreInProgress || subscriptionStore.isPurchaseInProgress)
@@ -461,10 +447,20 @@ struct ProudlyPlusView: View {
   }
 
   private func purchase(_ package: Package) async {
-    let unlocked = await subscriptionStore.purchase(package)
-
-    if unlocked {
+    let result = await subscriptionStore.purchase(package)
+    switch result {
+    case .unlocked:
+      toastCenter.show(message: "Proudly Plus unlocked", symbol: "sparkles")
       dismiss()
+    case .cancelled:
+      break
+    case .notUnlocked:
+      toastCenter.show(
+        message: "Purchase completed, but Plus is not active yet. Please try Restore Purchases.",
+        symbol: "exclamationmark.circle.fill"
+      )
+    case .failed:
+      break
     }
   }
 
@@ -507,6 +503,25 @@ struct ProudlyPlusView: View {
   private var footerForegroundColor: Color {
     colorScheme == .dark ? .white.opacity(0.82) : .primary.opacity(0.72)
   }
+
+  #if DEBUG
+    private var debugInfoSection: some View {
+      VStack(alignment: .leading, spacing: 6) {
+        Text("DEBUG · Subscription State")
+          .font(.caption2.weight(.bold))
+          .foregroundStyle(.orange)
+        Text("Entitlement ID: \(RevenueCatConfig.proudlyPlusEntitlementID)")
+          .font(.caption2.monospaced())
+        Text("hasProudlyPlus: \(subscriptionStore.hasProudlyPlus ? "true" : "false")")
+          .font(.caption2.monospaced())
+        Text("Packages loaded: \(subscriptionStore.availablePackages.count)")
+          .font(.caption2.monospaced())
+      }
+      .padding(12)
+      .frame(maxWidth: .infinity, alignment: .leading)
+      .background(.orange.opacity(0.1), in: RoundedRectangle(cornerRadius: 12))
+    }
+  #endif
 }
 
 private struct ProudlyPlusBenefit: Identifiable {
@@ -712,6 +727,7 @@ private struct SubscriptionPackageButton: View {
   ProudlyPlusView()
     .environment(ThemeViewModel())
     .environment(SubscriptionStore())
+    .environment(ToastCenter())
     .preferredColorScheme(.light)
 }
 
@@ -719,5 +735,6 @@ private struct SubscriptionPackageButton: View {
   ProudlyPlusView()
     .environment(ThemeViewModel())
     .environment(SubscriptionStore())
+    .environment(ToastCenter())
     .preferredColorScheme(.dark)
 }

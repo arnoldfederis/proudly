@@ -9,6 +9,19 @@ import Foundation
 import Observation
 import RevenueCat
 
+enum PurchaseResult {
+  case unlocked
+  case cancelled
+  case notUnlocked
+  case failed
+}
+
+enum RestoreResult {
+  case restoredPlus
+  case noActiveSubscription
+  case failed
+}
+
 @MainActor
 @Observable
 final class SubscriptionStore {
@@ -94,7 +107,7 @@ final class SubscriptionStore {
       customerInfo = try await Purchases.shared.customerInfo()
     } catch {
       presentError(
-        title: "Couldn’t refresh subscription",
+        title: "Couldn't refresh subscription",
         error: error
       )
     }
@@ -110,15 +123,15 @@ final class SubscriptionStore {
       currentOffering = try await Purchases.shared.offerings().current
     } catch {
       presentError(
-        title: "Couldn’t load subscriptions",
+        title: "Couldn't load subscriptions",
         error: error
       )
     }
   }
 
   @discardableResult
-  func purchase(_ package: Package) async -> Bool {
-    guard isConfigured, !isPurchaseInProgress else { return false }
+  func purchase(_ package: Package) async -> PurchaseResult {
+    guard isConfigured, !isPurchaseInProgress else { return .failed }
 
     isPurchaseInProgress = true
     defer { isPurchaseInProgress = false }
@@ -128,43 +141,35 @@ final class SubscriptionStore {
         package: package
       )
 
-      guard !userCancelled else { return false }
+      guard !userCancelled else { return .cancelled }
 
       customerInfo = updatedCustomerInfo
-      if hasProudlyPlus {
-        toastCenter?.show(message: "Proudly Plus unlocked", symbol: "sparkles")
-      }
-      return hasProudlyPlus
+      return hasProudlyPlus ? .unlocked : .notUnlocked
     } catch {
       presentError(
         title: "Purchase failed",
         error: error
       )
-      return false
+      return .failed
     }
   }
 
   @discardableResult
-  func restorePurchases() async -> Bool {
-    guard isConfigured, !isRestoreInProgress else { return false }
+  func restorePurchases() async -> RestoreResult {
+    guard isConfigured, !isRestoreInProgress else { return .failed }
 
     isRestoreInProgress = true
     defer { isRestoreInProgress = false }
 
     do {
       customerInfo = try await Purchases.shared.restorePurchases()
-      if hasProudlyPlus {
-        toastCenter?.show(message: "Subscription restored", symbol: "arrow.clockwise.circle.fill")
-      } else {
-        toastCenter?.show(message: "No active subscription found", symbol: "info.circle.fill")
-      }
-      return hasProudlyPlus
+      return hasProudlyPlus ? .restoredPlus : .noActiveSubscription
     } catch {
       presentError(
         title: "Restore failed",
         error: error
       )
-      return false
+      return .failed
     }
   }
 

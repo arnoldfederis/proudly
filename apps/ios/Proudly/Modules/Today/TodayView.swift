@@ -435,4 +435,5 @@ struct HabitRowView: View {
     .environment(ThemeViewModel())
     .environment(SubscriptionStore())
     .environment(HabitRepository.preview)
+    .environment(AppNavigationStore.shared)
 }

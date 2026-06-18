@@ -16,6 +16,7 @@ struct OnboardingFlowView: View {
   @State private var isSFSymbolPickerPresented = false
   @State private var customColor: Color = ProudlyTheme.purple
   @State private var navigationDirection = 1
+  @FocusState private var focusedField: OnboardingFocusField?
 
   var body: some View {
     ZStack {
@@ -126,16 +127,30 @@ struct OnboardingFlowView: View {
           .textInputAutocapitalization(.words)
           .padding(18)
           .proudlyGlass(cornerRadius: 20)
+          .focused($focusedField, equals: .habitName)
+          .onAppear {
+            Task { @MainActor in
+              try? await Task.sleep(for: .milliseconds(350))
+              focusedField = .habitName
+            }
+          }
       }
     case .userName:
       stepContainer(
         title: "What should Proudly call you?",
-        subtitle: "We’ll keep it personal and gentle."
+        subtitle: "We'll keep it personal and gentle."
       ) {
         TextField("John Doe", text: $viewModel.userName)
           .textInputAutocapitalization(.words)
           .padding(18)
           .proudlyGlass(cornerRadius: 20)
+          .focused($focusedField, equals: .userName)
+          .onAppear {
+            Task { @MainActor in
+              try? await Task.sleep(for: .milliseconds(350))
+              focusedField = .userName
+            }
+          }
       }
     case .description:
       stepContainer(
@@ -150,6 +165,19 @@ struct OnboardingFlowView: View {
         .lineLimit(4, reservesSpace: true)
         .padding(18)
         .proudlyGlass(cornerRadius: 20)
+        .focused($focusedField, equals: .habitDescription)
+        .onAppear {
+          Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(350))
+            focusedField = .habitDescription
+          }
+        }
+        .toolbar {
+          ToolbarItemGroup(placement: .keyboard) {
+            Spacer()
+            Button("Done") { focusedField = nil }
+          }
+        }
       }
     case .color:
       stepContainer(
@@ -660,6 +688,10 @@ struct OnboardingFlowView: View {
       removal: .move(edge: navigationDirection > 0 ? .leading : .trailing).combined(with: .opacity)
     )
   }
+}
+
+private enum OnboardingFocusField: Hashable {
+  case userName, habitName, habitDescription
 }
 
 #Preview {
