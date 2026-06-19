@@ -1,8 +1,5 @@
-import Image from "next/image";
+import { AppStoreBadge } from "@/components/common/app-store-badge";
 import { FadeIn } from "@/components/common/motion";
-
-// TODO: Replace with App Store URL when available
-const APP_STORE_URL = "#";
 
 const BENEFITS = [
   "Unlimited habits",
@@ -70,26 +67,10 @@ export function ProudlyPlus() {
               Monthly and yearly plans available.
             </p>
 
-            <a
-              aria-label="Unlock Proudly Plus on the App Store"
-              className="inline-block shrink-0 rounded-[0.875rem] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
-              href={APP_STORE_URL}
-            >
-              <Image
-                alt="Download on the App Store"
-                className="h-12 w-auto dark:hidden"
-                height={40}
-                src="/store-badges/white.svg"
-                width={120}
-              />
-              <Image
-                alt="Download on the App Store"
-                className="hidden h-12 w-auto dark:block"
-                height={40}
-                src="/store-badges/black.svg"
-                width={120}
-              />
-            </a>
+            <AppStoreBadge
+              ariaLabel="Unlock Proudly Plus on the App Store"
+              className="h-12"
+            />
           </div>
         </FadeIn>
       </div>

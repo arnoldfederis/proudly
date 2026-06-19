@@ -1,8 +1,8 @@
-import Image from "next/image";
+import { AppStoreBadge } from "@/components/common/app-store-badge";
 import { FadeIn } from "@/components/common/motion";
 
 // TODO: Replace with App Store URL when available
-const APP_STORE_URL = "#";
+const _APP_STORE_URL = "#";
 
 export function FinalCTA() {
   return (
@@ -16,19 +16,7 @@ export function FinalCTA() {
           .
         </h2>
 
-        <a
-          aria-label="Download Proudly on the App Store"
-          className="inline-block shrink-0 rounded-[0.875rem] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
-          href={APP_STORE_URL}
-        >
-          <Image
-            alt="Download on the App Store"
-            className="h-14 w-auto"
-            height={40}
-            src="/store-badges/black.svg"
-            width={120}
-          />
-        </a>
+        <AppStoreBadge className="h-14" />
 
         <p className="mt-5 text-muted-foreground text-sm">
           Start free. Upgrade when you're ready.

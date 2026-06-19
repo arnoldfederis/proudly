@@ -118,6 +118,23 @@ export function AppleStyleFeatureCarouselClient({
 }: {
   items: CarouselFeatureItem[];
 }) {
+  const [isMobile, setIsMobile] = React.useState(false);
+
+  React.useEffect(() => {
+    const mediaQuery = window.matchMedia("(max-width: 767px)");
+
+    const updateIsMobile = () => {
+      setIsMobile(mediaQuery.matches);
+    };
+
+    updateIsMobile();
+    mediaQuery.addEventListener("change", updateIsMobile);
+
+    return () => {
+      mediaQuery.removeEventListener("change", updateIsMobile);
+    };
+  }, []);
+
   return (
     <div className="w-full">
       <div className="mr-0 ml-auto flex max-w-455 flex-col gap-6 px-6 md:pr-0">
@@ -128,7 +145,7 @@ export function AppleStyleFeatureCarouselClient({
             align: "start",
             containScroll: "trimSnaps",
             dragFree: false,
-            watchDrag: false,
+            watchDrag: isMobile,
             loop: false,
           }}
         >
@@ -173,7 +190,7 @@ function CarouselContainer({ items }: { items: CarouselFeatureItem[] }) {
             <CarouselItem
               className={cn(
                 "flex pl-5 md:basis-[82%] md:pl-6 lg:basis-[66%] xl:basis-[60%] 2xl:basis-[58%]",
-                isLastItem ? "md:pl-0" : "",
+                isLastItem ? "hidden md:flex md:pl-0" : "",
               )}
               key={item.altName}
             >

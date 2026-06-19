@@ -7,7 +7,9 @@ const nextConfig: NextConfig = {
   images: {
     qualities: [85],
     formats: ["image/webp"],
-    remotePatterns: [{ protocol: "https", hostname: "**.proudlyhabit.com" }],
+    remotePatterns: [
+      { protocol: "https", hostname: "**.proudly.arnoldfederis.com" },
+    ],
   },
 };
 

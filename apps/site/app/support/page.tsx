@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   description:
     "Get help with Proudly, the private screenshot search app for iPhone.",
   alternates: {
-    canonical: "https://proudlyhabit.com/support",
+    canonical: "https://proudly.arnoldfederis.com/support",
   },
   openGraph: {
     title: "Support - Proudly",
@@ -93,7 +93,7 @@ export default function SupportPage() {
           </div>
           <a
             className={buttonVariants({ size: "sm" })}
-            href="mailto:support@proudlyhabit.com"
+            href="mailto:support@arnoldfederis.com"
           >
             Send email
           </a>

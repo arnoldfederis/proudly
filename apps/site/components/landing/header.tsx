@@ -1,11 +1,9 @@
 "use client";
 
 import Image from "next/image";
+import { AppStoreBadge } from "@/components/common/app-store-badge";
 import { ThemeSwitcher } from "@/components/common/theme-switcher";
 import { iconBlurDataURL } from "@/lib/image-placeholders";
-
-// TODO: Replace with final App Store URL before launch.
-const APP_STORE_URL = "#";
 
 export function Header() {
   return (
@@ -31,20 +29,7 @@ export function Header() {
 
         <div className="flex items-center gap-2">
           <ThemeSwitcher />
-          <a
-            aria-label="Download Proudly on the App Store"
-            className="inline-block shrink-0 rounded-[0.625rem] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
-            href={APP_STORE_URL}
-          >
-            <Image
-              alt="Download on the App Store"
-              className="h-10 w-auto"
-              height={40}
-              priority
-              src="/store-badges/black.svg"
-              width={120}
-            />
-          </a>
+          <AppStoreBadge isPriority={true} />
         </div>
       </div>
     </header>
