@@ -69,12 +69,14 @@ export default function PrivacyPage() {
 
       <Section title="Information Collected Automatically">
         <Body>
-          Proudly does not have its own analytics or tracking system. However:
+          Proudly does not have its own analytics or advertising tracking
+          system. However:
         </Body>
         <BulletList
           items={[
             "Apple may collect certain device and purchase information through the App Store according to Apple's privacy policy.",
-            "Subscription status may be checked through the App Store to validate your entitlements.",
+            "Proudly uses RevenueCat to validate purchases, manage subscription status, and unlock Proudly Plus features.",
+            "Subscription-related information, such as purchase status, product identifiers, entitlement status, and app user or device-related identifiers, may be processed to provide subscription features.",
             "Basic crash information may be reported to Apple depending on your iOS settings.",
           ]}
         />
@@ -88,7 +90,9 @@ export default function PrivacyPage() {
             "Save your preferences and settings",
             "Schedule local reminders",
             "Manage access to Proudly Plus features",
+            "Restore purchases and validate active subscriptions",
             "Improve and maintain the app",
+            "Respond to support requests",
           ]}
         />
       </Section>
@@ -112,17 +116,32 @@ export default function PrivacyPage() {
 
       <Section title="Subscriptions">
         <Body>
-          Proudly Plus subscriptions are processed by Apple. Proudly uses your
-          subscription status to unlock the appropriate features. Proudly does
-          not directly receive your payment card details.
+          Proudly Plus subscriptions are processed by Apple through the App
+          Store. Proudly uses RevenueCat to help validate purchases, manage
+          subscription status, restore purchases, and unlock Proudly Plus
+          features. RevenueCat may process subscription-related information such
+          as purchase status, product identifiers, entitlement status, and app
+          user or device-related identifiers needed to provide subscription
+          access. Proudly does not directly receive your payment card details.
+        </Body>
+      </Section>
+
+      <Section title="Support Requests">
+        <Body>
+          If you contact Proudly support, we may receive the information you
+          choose to provide, such as your email address, message content, and
+          details needed to help with your request. Support information is used
+          only to respond to your request, troubleshoot issues, and provide
+          customer support.
         </Body>
       </Section>
 
       <Section title="Data Sharing">
         <Body>
           Proudly does not sell your personal data. Information is only shared
-          with services needed to operate the app, process subscriptions through
-          Apple, respond to support requests, or comply with applicable law.
+          with services needed to operate the app, process subscriptions,
+          manage Proudly Plus access through Apple and RevenueCat, respond to
+          support requests, or comply with applicable law.
         </Body>
       </Section>
 

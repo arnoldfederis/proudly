@@ -92,6 +92,9 @@ export default function TermsPage() {
             "Your subscription renews automatically unless you cancel before the renewal date.",
             "To cancel: open iPhone Settings, tap your Apple Account, then Subscriptions, then Proudly.",
             "Pricing and available plans may vary by country and may change over time.",
+            "Proudly uses RevenueCat to help manage subscription status and unlock Proudly Plus features.",
+            "You can restore purchases in the app if your active subscription is not recognized.",
+            "If Apple provides a billing grace period after a failed renewal payment, you may continue to access Proudly Plus during that grace period while Apple attempts to recover the payment.",
           ]}
         />
       </Section>
