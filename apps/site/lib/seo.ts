@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const siteUrl =
-  process.env.NEXT_PUBLIC_SITE_URL ?? "https://proudly.arnoldfederis.com";
+  process.env.NEXT_PUBLIC_SITE_URL ?? "https://proudlyhabit.com";
 
 export const SITE_NAME = "Proudly";
 export const APP_NAME = "Proudly: Habit Tracker";
@@ -11,7 +11,7 @@ export const SITE_DESCRIPTION =
   "Proudly is a gentle habit tracker for small wins. Track daily habits, celebrate progress, and build routines without pressure.";
 
 // TODO: Replace support email if the final address changes.
-export const SUPPORT_EMAIL = "support@arnoldfederis.com";
+export const SUPPORT_EMAIL = "support@proudlyhabit.com";
 
 // TODO: Replace with final App Store URL before launch.
 export const APP_STORE_URL = "#";

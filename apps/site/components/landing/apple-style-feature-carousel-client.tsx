@@ -4,6 +4,7 @@ import * as React from "react";
 import { ProgressiveImage } from "@/components/common/progressive-image";
 import {
   Carousel,
+  type CarouselApi,
   CarouselContent,
   CarouselItem,
   CarouselNext,
@@ -12,6 +13,14 @@ import {
 } from "@/components/ui/carousel";
 import { deviceBlurDataURL } from "@/lib/image-placeholders";
 import { cn } from "@/lib/utils";
+
+const CAROUSEL_OPTS = {
+  align: "start" as const,
+  containScroll: false as const,
+  dragFree: false,
+  loop: false,
+  watchDrag: true,
+};
 
 type CarouselFeatureItem = {
   altName: string;
@@ -118,54 +127,114 @@ export function AppleStyleFeatureCarouselClient({
 }: {
   items: CarouselFeatureItem[];
 }) {
-  const [isMobile, setIsMobile] = React.useState(false);
+  const [api, setApi] = React.useState<CarouselApi>();
+  const [layoutWidth, setLayoutWidth] = React.useState<{
+    carouselWidth?: number;
+    controlsWidth: number;
+    innerWidth?: number;
+  }>({
+    carouselWidth: undefined,
+    controlsWidth: 350,
+    innerWidth: undefined,
+  });
 
   React.useEffect(() => {
-    const mediaQuery = window.matchMedia("(max-width: 767px)");
+    if (!api) return;
+    const root = api.rootNode();
+    if (root) {
+      root.style.touchAction = "pan-y";
+    }
+    api.reInit();
+  }, [api]);
 
-    const updateIsMobile = () => {
-      setIsMobile(mediaQuery.matches);
+  React.useEffect(() => {
+    const updateLayoutWidth = () => {
+      const { innerWidth } = window;
+
+      if (innerWidth < 1024) {
+        setLayoutWidth({
+          carouselWidth: undefined,
+          controlsWidth: 350,
+          innerWidth,
+        });
+      } else {
+        setLayoutWidth({
+          carouselWidth: (innerWidth * 1820) / 2560,
+          controlsWidth: (innerWidth * 350) / 2560,
+          innerWidth,
+        });
+      }
+
+      api?.reInit();
     };
 
-    updateIsMobile();
-    mediaQuery.addEventListener("change", updateIsMobile);
+    updateLayoutWidth();
+    window.addEventListener("resize", updateLayoutWidth);
 
     return () => {
-      mediaQuery.removeEventListener("change", updateIsMobile);
+      window.removeEventListener("resize", updateLayoutWidth);
     };
-  }, []);
+  }, [api]);
 
   return (
     <div className="w-full">
-      <div className="mr-0 ml-auto flex max-w-455 flex-col gap-6 px-6 md:pr-0">
+      <div
+        className="mr-0 ml-auto flex flex-col gap-6 px-6 lg:px-0 2xl:px-6 2xl:pr-0"
+        style={{
+          maxWidth: "100%",
+          width: layoutWidth.carouselWidth
+            ? `${layoutWidth.carouselWidth}px`
+            : undefined,
+        }}
+      >
         <Carousel
           aria-label="Supporting Proudly features"
           className="w-full"
-          opts={{
-            align: "start",
-            containScroll: "trimSnaps",
-            dragFree: false,
-            watchDrag: isMobile,
-            loop: false,
-          }}
+          opts={CAROUSEL_OPTS}
+          setApi={setApi}
         >
-          <CarouselContainer items={items} />
+          <CarouselContainer
+            api={api}
+            controlsWidth={layoutWidth.controlsWidth}
+            innerWidth={layoutWidth.innerWidth}
+            items={items}
+          />
         </Carousel>
       </div>
     </div>
   );
 }
 
-function CarouselContainer({ items }: { items: CarouselFeatureItem[] }) {
-  const { api } = useCarousel();
+function CarouselContainer({
+  items,
+  controlsWidth,
+  api,
+  innerWidth,
+}: {
+  items: CarouselFeatureItem[];
+  controlsWidth: number;
+  api: CarouselApi | undefined;
+  innerWidth: number | undefined;
+}) {
+  const isMobile = innerWidth !== undefined && innerWidth < 1024;
+  useCarousel(); // keep context alive for CarouselPrevious / CarouselNext
   const [selectedIndex, setSelectedIndex] = React.useState(0);
   const visibleItems = items.slice(0, -1);
+  const lastRealIndex = visibleItems.length - 1;
 
   React.useEffect(() => {
     if (!api) return;
 
     const onSelect = () => {
-      setSelectedIndex(api.selectedScrollSnap());
+      const nextIndex = api.selectedScrollSnap();
+
+      if (nextIndex > lastRealIndex) {
+        api.scrollTo(lastRealIndex);
+        setSelectedIndex(lastRealIndex);
+        return;
+      }
+
+      setSelectedIndex(nextIndex);
     };
 
     onSelect();
@@ -176,28 +245,29 @@ function CarouselContainer({ items }: { items: CarouselFeatureItem[] }) {
       api.off("select", onSelect);
       api.off("reInit", onSelect);
     };
-  }, [api]);
+  }, [api, lastRealIndex]);
 
-  const disableNext = selectedIndex >= items.length - 2;
+  const disableNext = selectedIndex >= lastRealIndex;
 
   return (
     <>
-      <CarouselContent className="-ml-5 md:-ml-6">
+      <CarouselContent className="">
         {items.map((item, index) => {
           const isLastItem = index === items.length - 1;
 
+          if (isLastItem && isMobile) return null;
+
           return (
             <CarouselItem
+              aria-hidden={isLastItem}
               className={cn(
-                "flex pl-5 md:basis-[82%] md:pl-6 lg:basis-[66%] xl:basis-[60%] 2xl:basis-[58%]",
-                isLastItem ? "hidden md:flex md:pl-0" : "",
+                "flex pl-4.5 lg:basis-[60%] xl:basis-[60%] xl:pl-8 2xl:basis-[58%]",
+                isLastItem ? "hidden lg:flex" : "",
               )}
               key={item.altName}
             >
-              {isLastItem ? (
-                <></>
-              ) : (
-                <article className="grid w-full overflow-hidden rounded-[2rem] border border-gray bg-white/70 backdrop-blur-2xl md:min-h-[42rem] lg:grid-cols-[0.92fr_1.08fr] dark:border-white/10 dark:bg-white/[0.06] dark:shadow-[0_24px_80px_rgba(0,0,0,0.35)]">
+              {isLastItem ? null : (
+                <article className="grid w-full overflow-hidden rounded-[2rem] border border-gray bg-white/70 backdrop-blur-2xl md:min-h-[42rem] 2xl:grid-cols-[0.92fr_1.08fr] dark:border-white/10 dark:bg-white/[0.06] dark:shadow-[0_24px_80px_rgba(0,0,0,0.35)]">
                   <div className="flex h-full flex-col justify-between p-7 sm:p-8 lg:p-12">
                     <div>
                       <p className="font-medium text-[0.75rem] uppercase tracking-[0.28em]">
@@ -230,8 +300,14 @@ function CarouselContainer({ items }: { items: CarouselFeatureItem[] }) {
         })}
       </CarouselContent>
 
-      <div className="mx-auto mt-6 flex max-w-87.5 flex-col justify-end gap-4 md:pr-10">
-        <div className="flex items-center justify-center gap-3 md:justify-end">
+      <div
+        className="mx-auto mt-6 flex flex-col justify-end gap-4 lg:pr-10"
+        style={{
+          maxWidth: "100%",
+          width: `${controlsWidth}px`,
+        }}
+      >
+        <div className="flex items-center justify-center gap-3 lg:justify-end">
           {visibleItems.map((item, index) => {
             const isActive = index === selectedIndex;
 
@@ -245,7 +321,10 @@ function CarouselContainer({ items }: { items: CarouselFeatureItem[] }) {
                     : "w-2.5 bg-[#D7D0E0] hover:bg-[#C7BDD6] dark:bg-white/18 dark:hover:bg-white/28",
                 )}
                 key={item.altName}
-                onClick={() => api?.scrollTo(index)}
+                onClick={() => {
+                  api?.scrollTo(index);
+                  setSelectedIndex(index);
+                }}
                 type="button"
               />
             );
@@ -253,8 +332,14 @@ function CarouselContainer({ items }: { items: CarouselFeatureItem[] }) {
         </div>
       </div>
 
-      <div className="mx-auto mt-6 flex max-w-87.5 flex-col justify-end gap-4 md:pr-10">
-        <div className="flex flex-col items-center gap-4 md:flex-row md:justify-end">
+      <div
+        className="mx-auto mt-6 flex flex-col justify-end gap-4 lg:pr-10"
+        style={{
+          maxWidth: "100%",
+          width: `${controlsWidth}px`,
+        }}
+      >
+        <div className="flex flex-col items-center gap-4 lg:flex-row lg:justify-end">
           <div className="flex items-center justify-center gap-3 md:justify-end">
             <CarouselPrevious
               aria-label="Previous feature"
