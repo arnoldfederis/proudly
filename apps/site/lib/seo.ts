@@ -14,7 +14,7 @@ export const SITE_DESCRIPTION =
 export const SUPPORT_EMAIL = "support@proudlyhabit.com";
 
 // TODO: Replace with final App Store URL before launch.
-export const APP_STORE_URL = "#";
+export const APP_STORE_URL = "https://apps.apple.com/app/id6782197891";
 
 export const KEYWORDS = [
   "habit tracker app",

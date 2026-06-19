@@ -1,9 +1,6 @@
 import { AppStoreBadge } from "@/components/common/app-store-badge";
 import { FadeIn } from "@/components/common/motion";
 
-// TODO: Replace with App Store URL when available
-const _APP_STORE_URL = "#";
-
 export function FinalCTA() {
   return (
     <section className="border-t py-28">

@@ -4,9 +4,6 @@ import { FadeIn } from "@/components/common/motion";
 import { PhoneMockup } from "@/components/common/phone-mockup";
 import { deviceBlurDataURL } from "@/lib/image-placeholders";
 
-// TODO: Replace with App Store URL when available
-const _APP_STORE_URL = "#";
-
 export function Hero() {
   return (
     <section className="overflow-hidden pt-24 pb-0">
