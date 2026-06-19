@@ -110,7 +110,8 @@ struct RemindersView: View {
       return "No reminder set"
     }
 
-    return habit.reminderTimes.joined(separator: "  •  ")
+    return NotificationManager.displayTimeStrings(from: habit.reminderTimes)
+      .joined(separator: "  •  ")
   }
 }
 

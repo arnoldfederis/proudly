@@ -275,9 +275,12 @@ struct OnboardingFlowView: View {
               Text("Planned reminders")
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(.secondary)
-              Text(viewModel.resolvedReminderTimes.joined(separator: "  •  "))
-                .font(.subheadline.weight(.medium))
-                .contentTransition(.numericText())
+              Text(
+                NotificationManager.displayTimeStrings(from: viewModel.resolvedReminderTimes)
+                  .joined(separator: "  •  ")
+              )
+              .font(.subheadline.weight(.medium))
+              .contentTransition(.numericText())
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(16)

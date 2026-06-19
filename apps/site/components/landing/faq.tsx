@@ -31,7 +31,7 @@ const FAQS = [
 
 export function FAQ() {
   return (
-    <section className="border-t py-24" id="faq">
+    <section className="border-t bg-muted/30 py-24" id="faq">
       <div className="mx-auto max-w-3xl">
         <FadeIn className="mb-14 px-6 text-center">
           <h2 className="font-bold text-3xl tracking-tight sm:text-4xl">

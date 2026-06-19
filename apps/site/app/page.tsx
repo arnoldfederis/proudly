@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { AppleStyleFeatureCarousel } from "@/components/landing/apple-style-feature-carousel";
 import { FAQ } from "@/components/landing/faq";
 import { FeatureShowcase } from "@/components/landing/feature-showcase";
 import { FinalCTA } from "@/components/landing/final-cta";
@@ -7,7 +8,6 @@ import { Header } from "@/components/landing/header";
 import { Hero } from "@/components/landing/hero";
 import { HowItWorks } from "@/components/landing/how-it-works";
 import { ProudlyPlus } from "@/components/landing/proudly-plus";
-import { BeliefStrip } from "@/components/landing/screenshot-gallery";
 import {
   APP_NAME,
   absoluteUrl,
@@ -92,8 +92,8 @@ export default function Home() {
       <Header />
       <main>
         <Hero />
-        <BeliefStrip />
         <FeatureShowcase />
+        <AppleStyleFeatureCarousel />
         <HowItWorks />
         <ProudlyPlus />
         <FAQ />

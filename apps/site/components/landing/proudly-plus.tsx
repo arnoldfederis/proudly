@@ -36,8 +36,10 @@ export function ProudlyPlus() {
       <div className="mx-auto max-w-4xl px-6">
         <FadeIn>
           <div className="rounded-3xl border border-black/5 bg-gradient-to-br from-violet-50 via-pink-50/60 to-sky-50 p-10 text-center shadow-[0_24px_80px_-32px_rgba(167,139,250,0.45)] md:p-14 dark:border-white/10 dark:bg-[linear-gradient(135deg,rgba(59,43,85,0.96),rgba(42,33,60,0.94)_45%,rgba(30,39,61,0.94))] dark:shadow-[0_24px_80px_-32px_rgba(0,0,0,0.6)]">
-            <span className="mb-5 inline-block rounded-full bg-violet-100 px-4 py-1.5 font-semibold text-violet-600 text-xs uppercase tracking-widest dark:bg-violet-400/15 dark:text-violet-100 dark:ring-1 dark:ring-violet-200/10">
-              Proudly Plus
+            <span className="mb-5 inline-block rounded-full bg-violet-100 px-4 py-1.5 font-semibold text-xs uppercase tracking-widest dark:bg-violet-400/15 dark:text-violet-100 dark:ring-1 dark:ring-violet-200/10">
+              <span className="bg-linear-to-r from-[#8B7CF6] via-[#C7B8FF] to-[#F0A6CA] bg-clip-text text-transparent dark:from-[#D9D0FF] dark:via-[#C7B8FF] dark:to-[#FFB6DC]">
+                Proudly Plus
+              </span>
             </span>
 
             <h2 className="mb-5 font-bold text-3xl tracking-tight sm:text-4xl">
@@ -77,14 +79,14 @@ export function ProudlyPlus() {
                 alt="Download on the App Store"
                 className="h-12 w-auto dark:hidden"
                 height={40}
-                src="/store-badges/black.svg"
+                src="/store-badges/white.svg"
                 width={120}
               />
               <Image
                 alt="Download on the App Store"
                 className="hidden h-12 w-auto dark:block"
                 height={40}
-                src="/store-badges/white.svg"
+                src="/store-badges/black.svg"
                 width={120}
               />
             </a>

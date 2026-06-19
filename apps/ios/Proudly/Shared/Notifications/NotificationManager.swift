@@ -11,6 +11,12 @@ import UserNotifications
 @MainActor
 final class NotificationManager {
   static let shared = NotificationManager()
+  private static let reminderDisplayFormatter: DateFormatter = {
+    let formatter = DateFormatter()
+    formatter.locale = Locale(identifier: "en_US_POSIX")
+    formatter.dateFormat = "h:mm a"
+    return formatter
+  }()
 
   private let center = UNUserNotificationCenter.current()
 
@@ -108,6 +114,22 @@ final class NotificationManager {
   static func timeString(from date: Date) -> String {
     let components = Calendar.current.dateComponents([.hour, .minute], from: date)
     return String(format: "%02d:%02d", components.hour ?? 9, components.minute ?? 0)
+  }
+
+  static func displayTimeString(from timeString: String) -> String {
+    guard
+      let date = timeComponents(from: timeString).flatMap({
+        Calendar.current.date(from: DateComponents(hour: $0.hour, minute: $0.minute))
+      })
+    else {
+      return timeString
+    }
+
+    return reminderDisplayFormatter.string(from: date)
+  }
+
+  static func displayTimeStrings(from timeStrings: [String]) -> [String] {
+    timeStrings.map(displayTimeString(from:))
   }
 
   private static func evenlyDistributedReminderTimes(for dailyTargetCount: Int) -> [String] {

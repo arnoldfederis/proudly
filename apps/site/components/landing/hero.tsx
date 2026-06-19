@@ -9,19 +9,23 @@ const APP_STORE_URL = "#";
 export function Hero() {
   return (
     <section className="overflow-hidden pt-24 pb-0">
-      <div className="mx-auto max-w-3xl px-6 text-center">
+      <div className="mx-auto max-w-4xl px-6 text-center">
         <FadeIn>
           <h1 className="font-bold text-5xl leading-[1.07] tracking-tight sm:text-6xl lg:text-7xl">
-            A gentle habit tracker
-            <br />
-            <span className="text-primary">for small wins.</span>
+            Do one thing today that makes you
+            <span className="bg-linear-to-r from-[#8B7CF6] via-[#C7B8FF] to-[#F0A6CA] bg-clip-text text-transparent dark:from-[#D9D0FF] dark:via-[#C7B8FF] dark:to-[#FFB6DC]">
+              {" "}
+              proud
+            </span>
+            .
           </h1>
         </FadeIn>
 
         <FadeIn delay={0.1}>
           <p className="mx-auto mt-6 max-w-lg text-lg text-muted-foreground leading-relaxed">
-            Proudly helps you track daily habits, build streaks, set reminders,
-            and celebrate progress without pressure.
+            Proudly is a gentle habit tracker for small wins. Track daily
+            habits, build streaks, set reminders, and celebrate progress without
+            pressure.
           </p>
         </FadeIn>
 
@@ -61,7 +65,7 @@ export function Hero() {
         <div className="pointer-events-none absolute top-1/2 left-1/2 size-80 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/15 blur-3xl" />
         <PhoneMockup className="relative">
           <Image
-            alt="SnapFound screenshot search results on iPhone"
+            alt="Do one thing today that makes you proud"
             blurDataURL={deviceBlurDataURL}
             className="h-auto w-65 sm:w-75"
             height={2796}

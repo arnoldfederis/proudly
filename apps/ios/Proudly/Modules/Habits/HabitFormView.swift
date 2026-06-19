@@ -452,10 +452,13 @@ struct HabitFormView: View {
                   .font(.caption.weight(.semibold))
                   .foregroundStyle(.secondary)
 
-                Text(reminderTimes.joined(separator: "  •  "))
-                  .font(.caption.weight(.medium))
-                  .foregroundStyle(.secondary)
-                  .contentTransition(.numericText())
+                Text(
+                  NotificationManager.displayTimeStrings(from: reminderTimes)
+                    .joined(separator: "  •  ")
+                )
+                .font(.caption.weight(.medium))
+                .foregroundStyle(.secondary)
+                .contentTransition(.numericText())
               }
               .frame(maxWidth: .infinity, alignment: .leading)
             }

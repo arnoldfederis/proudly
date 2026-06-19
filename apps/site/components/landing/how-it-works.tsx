@@ -35,7 +35,7 @@ export function HowItWorks() {
           {STEPS.map((s) => (
             <StaggerItem key={s.step}>
               <div className="flex flex-col gap-3">
-                <span className="font-bold text-4xl text-primary/20 tabular-nums leading-none">
+                <span className="font-bold text-4xl text-primary tabular-nums leading-none">
                   {s.step}
                 </span>
                 <h3 className="font-semibold">{s.title}</h3>
