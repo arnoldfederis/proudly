@@ -14,13 +14,16 @@
 
 /* Begin PBXFileReference section */
 		24A1FC6E2FD7588100102895 /* Proudly.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Proudly.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		9B6A5B48DB6F4A558CB4EC7B /* RevenueCat.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Proudly/Configurations/RevenueCat.xcconfig; sourceTree = SOURCE_ROOT; };
+		9B6A5B48DB6F4A558CB4EC7B /* Proudly/Configurations/RevenueCat.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Proudly/Configurations/RevenueCat.xcconfig; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
 		24A1FC7B2FD7588200102895 /* Exceptions for "Proudly" folder in "Proudly" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				Configurations/RevenueCat.xcconfig,
+				Configurations/Secrets.example.xcconfig,
+				Configurations/Secrets.xcconfig,
 				Info.plist,
 			);
 			target = 24A1FC6D2FD7588100102895 /* Proudly */;
@@ -52,11 +55,20 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		244B34E82FE6373800B3597D /* Recovered References */ = {
+			isa = PBXGroup;
+			children = (
+				9B6A5B48DB6F4A558CB4EC7B /* Proudly/Configurations/RevenueCat.xcconfig */,
+			);
+			name = "Recovered References";
+			sourceTree = "<group>";
+		};
 		24A1FC652FD7588100102895 = {
 			isa = PBXGroup;
 			children = (
 				24A1FC702FD7588100102895 /* Proudly */,
 				24A1FC6F2FD7588100102895 /* Products */,
+				244B34E82FE6373800B3597D /* Recovered References */,
 			);
 			sourceTree = "<group>";
 		};
@@ -104,7 +116,7 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 2650;
-				LastUpgradeCheck = 2650;
+				LastUpgradeCheck = 2700;
 				TargetAttributes = {
 					24A1FC6D2FD7588100102895 = {
 						CreatedOnToolsVersion = 26.5;
@@ -156,7 +168,7 @@
 /* Begin XCBuildConfiguration section */
 		24A1FC7D2FD7588200102895 /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 9B6A5B48DB6F4A558CB4EC7B /* RevenueCat.xcconfig */;
+			baseConfigurationReference = 9B6A5B48DB6F4A558CB4EC7B /* Proudly/Configurations/RevenueCat.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -167,6 +179,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Proudly/Info.plist;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
 				INFOPLIST_KEY_RevenueCatAPIKey = "$(REVENUECAT_API_KEY)";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -193,7 +206,7 @@
 		};
 		24A1FC7E2FD7588200102895 /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 9B6A5B48DB6F4A558CB4EC7B /* RevenueCat.xcconfig */;
+			baseConfigurationReference = 9B6A5B48DB6F4A558CB4EC7B /* Proudly/Configurations/RevenueCat.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -204,6 +217,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Proudly/Info.plist;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
 				INFOPLIST_KEY_RevenueCatAPIKey = "$(REVENUECAT_API_KEY)";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -287,6 +301,7 @@
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 			};
@@ -344,6 +359,7 @@
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				VALIDATE_PRODUCT = YES;
 			};
