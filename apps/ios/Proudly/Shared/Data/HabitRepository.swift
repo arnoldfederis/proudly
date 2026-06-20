@@ -438,22 +438,20 @@ final class HabitRepository {
   }()
 }
 
-#if DEBUG
-  extension HabitRepository {
-    static var preview: HabitRepository {
-      let schema = Schema([PersistentHabit.self, PersistentHabitCompletion.self])
-      let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
-      let container = try! ModelContainer(for: schema, configurations: [config])
-      UserDefaults.standard.set(true, forKey: "hasCompletedOnboarding")
-      let repository = HabitRepository(modelContext: container.mainContext)
+extension HabitRepository {
+  static var preview: HabitRepository {
+    let schema = Schema([PersistentHabit.self, PersistentHabitCompletion.self])
+    let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
+    let container = try! ModelContainer(for: schema, configurations: [config])
+    UserDefaults.standard.set(true, forKey: "hasCompletedOnboarding")
+    let repository = HabitRepository(modelContext: container.mainContext)
 
-      if repository.activeHabits.isEmpty {
-        repository.addHabit(Habit.samples[0], markSeeded: true, showsToast: false)
-        repository.addHabit(Habit.samples[1], markSeeded: true, showsToast: false)
-        repository.addHabit(Habit.samples[2], markSeeded: true, showsToast: false)
-      }
-
-      return repository
+    if repository.activeHabits.isEmpty {
+      repository.addHabit(Habit.samples[0], markSeeded: true, showsToast: false)
+      repository.addHabit(Habit.samples[1], markSeeded: true, showsToast: false)
+      repository.addHabit(Habit.samples[2], markSeeded: true, showsToast: false)
     }
+
+    return repository
   }
-#endif
+}

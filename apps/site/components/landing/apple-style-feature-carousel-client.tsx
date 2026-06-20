@@ -261,7 +261,7 @@ function CarouselContainer({
             <CarouselItem
               aria-hidden={isLastItem}
               className={cn(
-                "flex pl-4.5 lg:basis-[60%] xl:basis-[60%] xl:pl-8 2xl:basis-[58%]",
+                "flex pl-[16px] lg:basis-[60%] xl:basis-[60%] 2xl:basis-[58%] 2xl:pl-8",
                 isLastItem ? "hidden lg:flex" : "",
               )}
               key={item.altName}
@@ -301,7 +301,7 @@ function CarouselContainer({
       </CarouselContent>
 
       <div
-        className="mx-auto mt-6 flex flex-col justify-end gap-4 lg:pr-10"
+        className="mx-auto mt-6 flex flex-col justify-end gap-4 2xl:pr-8"
         style={{
           maxWidth: "100%",
           width: `${controlsWidth}px`,
@@ -333,7 +333,7 @@ function CarouselContainer({
       </div>
 
       <div
-        className="mx-auto mt-6 flex flex-col justify-end gap-4 lg:pr-10"
+        className="mx-auto mt-6 flex flex-col justify-end gap-4 2xl:pr-8"
         style={{
           maxWidth: "100%",
           width: `${controlsWidth}px`,
