@@ -22,7 +22,7 @@ final class OnboardingViewModel {
   var selectedFrequency: Int = 1
   var customFrequency: Int = 5
   var reminderOption: OnboardingReminderOption = .none
-  var customReminderTime: Date = NotificationManager.reminderDate(from: "09:00")
+  var customReminderTimes: [Date] = [NotificationManager.reminderDate(from: "09:00")]
 
   var isSaving: Bool = false
   var permissionDeniedMessage: String?
@@ -53,7 +53,7 @@ final class OnboardingViewModel {
   ]
 
   var dailyTargetCount: Int {
-    selectedFrequency == 0 ? max(customFrequency, 1) : selectedFrequency
+    selectedFrequency == 0 ? max(customFrequency, 4) : selectedFrequency
   }
 
   var currentInputStepIndex: Int? {
@@ -96,13 +96,6 @@ final class OnboardingViewModel {
   var resolvedReminderTimes: [String] {
     guard remindersEnabled else { return [] }
 
-    if selectedFrequency == 0 {
-      return NotificationManager.generatedReminderTimes(
-        for: dailyTargetCount,
-        firstTime: customReminderTime
-      )
-    }
-
     switch reminderOption {
     case .none:
       return []
@@ -122,11 +115,58 @@ final class OnboardingViewModel {
         firstTime: NotificationManager.reminderDate(from: eveningAnchor(for: dailyTargetCount))
       )
     case .custom:
-      return NotificationManager.generatedReminderTimes(
-        for: dailyTargetCount,
-        firstTime: customReminderTime
-      )
+      return
+        customReminderTimes
+        .prefix(dailyTargetCount)
+        .map(NotificationManager.timeString(from:))
     }
+  }
+
+  func synchronizeCustomReminderTimes() {
+    let count = max(dailyTargetCount, 1)
+
+    if customReminderTimes.count > count {
+      customReminderTimes = Array(customReminderTimes.prefix(count))
+      return
+    }
+
+    if customReminderTimes.count < count {
+      var updated = customReminderTimes
+      while updated.count < count {
+        updated.append(nextCustomReminderDate(after: updated.last))
+      }
+      customReminderTimes = updated
+    }
+  }
+
+  func updateCustomReminderTime(at index: Int, to newValue: Date) {
+    guard customReminderTimes.indices.contains(index) else { return }
+
+    var updated = customReminderTimes
+    let minDate = minimumCustomReminderDate(for: index, in: updated)
+    updated[index] = max(newValue, minDate)
+
+    for followingIndex in (index + 1)..<updated.count {
+      let nextMin = minimumCustomReminderDate(for: followingIndex, in: updated)
+      if updated[followingIndex] < nextMin {
+        updated[followingIndex] = nextMin
+      }
+    }
+
+    customReminderTimes = updated
+  }
+
+  func minimumCustomReminderDate(for index: Int, in times: [Date]) -> Date {
+    guard index > 0, times.indices.contains(index - 1) else {
+      return NotificationManager.reminderDate(from: "00:00")
+    }
+    return Calendar.current.date(byAdding: .minute, value: 1, to: times[index - 1])
+      ?? times[index - 1]
+  }
+
+  private func nextCustomReminderDate(after previousDate: Date?) -> Date {
+    let anchor = previousDate ?? NotificationManager.reminderDate(from: "09:00")
+    return Calendar.current.date(byAdding: .hour, value: 1, to: anchor) ?? anchor
   }
 
   func hasReachedStep(_ step: OnboardingStep) -> Bool {

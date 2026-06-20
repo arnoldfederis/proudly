@@ -435,9 +435,11 @@ struct HabitFormView: View {
                       get: { customReminderTimes[index] },
                       set: { updateCustomReminderTime(at: index, to: $0) }
                     ),
+                    in: minimumCustomReminderDate(for: index, in: customReminderTimes)...,
                     displayedComponents: .hourAndMinute
                   )
                   .datePickerStyle(.compact)
+                  .id(customReminderTimes[index])
                 }
 
                 Text("Later reminders stay after the earlier ones.")

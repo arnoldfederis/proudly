@@ -139,9 +139,9 @@ export default function PrivacyPage() {
       <Section title="Data Sharing">
         <Body>
           Proudly does not sell your personal data. Information is only shared
-          with services needed to operate the app, process subscriptions,
-          manage Proudly Plus access through Apple and RevenueCat, respond to
-          support requests, or comply with applicable law.
+          with services needed to operate the app, process subscriptions, manage
+          Proudly Plus access through Apple and RevenueCat, respond to support
+          requests, or comply with applicable law.
         </Body>
       </Section>
 

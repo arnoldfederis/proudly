@@ -67,6 +67,14 @@ struct OnboardingFlowView: View {
       } else if viewModel.reminderOption == .custom {
         viewModel.reminderOption = .morning
       }
+      viewModel.synchronizeCustomReminderTimes()
+    }
+    .onChange(of: viewModel.customFrequency) { _, _ in
+      viewModel.synchronizeCustomReminderTimes()
+    }
+    .onChange(of: viewModel.reminderOption) { _, newValue in
+      guard newValue == .custom else { return }
+      viewModel.synchronizeCustomReminderTimes()
     }
   }
 
@@ -213,8 +221,10 @@ struct OnboardingFlowView: View {
                 .contentTransition(.numericText())
             }
             Spacer()
-            Stepper("", value: $viewModel.customFrequency, in: 1...8)
+            Stepper("", value: $viewModel.customFrequency, in: 4...8)
               .labelsHidden()
+              .disabled(viewModel.selectedFrequency != 0)
+              .opacity(viewModel.selectedFrequency == 0 ? 1 : 0.45)
           }
           .padding(18)
           .frame(maxWidth: .infinity)
@@ -257,15 +267,32 @@ struct OnboardingFlowView: View {
           }
 
           if showsCustomReminderPicker {
-            DatePicker(
-              "Reminder time",
-              selection: $viewModel.customReminderTime,
-              displayedComponents: .hourAndMinute
-            )
-            .datePickerStyle(.wheel)
-            .labelsHidden()
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 8)
+            VStack(alignment: .leading, spacing: 12) {
+              ForEach(
+                Array(viewModel.customReminderTimes.prefix(viewModel.dailyTargetCount).indices),
+                id: \.self
+              ) { index in
+                DatePicker(
+                  reminderPickerTitle(for: index),
+                  selection: Binding(
+                    get: { viewModel.customReminderTimes[index] },
+                    set: { viewModel.updateCustomReminderTime(at: index, to: $0) }
+                  ),
+                  in: viewModel.minimumCustomReminderDate(
+                    for: index, in: viewModel.customReminderTimes)...,
+                  displayedComponents: .hourAndMinute
+                )
+                .datePickerStyle(.compact)
+                .id(viewModel.customReminderTimes[index])
+              }
+
+              if viewModel.dailyTargetCount > 1 {
+                Text("Later reminders stay after the earlier ones.")
+                  .font(.caption)
+                  .foregroundStyle(.secondary)
+              }
+            }
+            .padding(16)
             .proudlyGlass(cornerRadius: 20)
             .transition(.opacity.combined(with: .move(edge: .bottom)))
           }
@@ -682,6 +709,11 @@ struct OnboardingFlowView: View {
   private var showsCustomReminderPicker: Bool {
     viewModel.remindersEnabled
       && (viewModel.selectedFrequency == 0 || viewModel.reminderOption == .custom)
+  }
+
+  private func reminderPickerTitle(for index: Int) -> String {
+    let ordinals = ["First", "Second", "Third", "Fourth", "Fifth", "Sixth", "Seventh", "Eighth"]
+    return index < ordinals.count ? ordinals[index] + " reminder" : "Reminder \(index + 1)"
   }
 
   private var stepTransition: AnyTransition {
