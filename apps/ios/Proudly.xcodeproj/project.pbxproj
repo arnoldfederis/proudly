@@ -208,7 +208,7 @@
 		24A1FC7E2FD7588200102895 /* Release */ = {
 			isa = XCBuildConfiguration;
 			baseConfigurationReferenceAnchor = 24A1FC702FD7588100102895 /* Proudly */;
-			baseConfigurationReferenceRelativePath = Configurations/Secrets.xcconfig;
+			baseConfigurationReferenceRelativePath = Configurations/RevenueCat.xcconfig;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
