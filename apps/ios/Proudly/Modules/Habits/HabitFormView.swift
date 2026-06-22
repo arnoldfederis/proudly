@@ -122,6 +122,20 @@ struct HabitFormView: View {
   private var effectiveDailyTargetCount: Int {
     selectedTargetCount == 0 ? max(customTargetCount, 4) : selectedTargetCount
   }
+
+  /// When the daily target is 1, the user can pick an independent reminder
+  /// count (up to 24). Otherwise the count tracks the daily target so every
+  /// check-in has a matching reminder.
+  private var effectiveReminderCount: Int {
+    if effectiveDailyTargetCount == 1 {
+      return min(
+        max(reminderCount, Self.reminderCountRange.lowerBound),
+        Self.reminderCountRange.upperBound)
+    }
+    return effectiveDailyTargetCount
+  }
+
+  private var allowsIndependentReminderCount: Bool { effectiveDailyTargetCount == 1 }
   private var effectiveIcon: String {
     if selectedIcon.isHabitSFSymbol {
       return selectedIcon
@@ -134,7 +148,7 @@ struct HabitFormView: View {
     case .none:
       return []
     case .basedOnTarget:
-      return NotificationManager.defaultReminderTimes(for: reminderCount)
+      return NotificationManager.defaultReminderTimes(for: effectiveReminderCount)
     case .customFirstTime:
       return normalizedCustomReminderTimes
     }
@@ -142,7 +156,7 @@ struct HabitFormView: View {
 
   private var normalizedCustomReminderTimes: [String] {
     customReminderTimes
-      .prefix(reminderCount)
+      .prefix(effectiveReminderCount)
       .map(NotificationManager.timeString(from:))
   }
 
@@ -203,6 +217,12 @@ struct HabitFormView: View {
     }
     .preferredColorScheme(theme.activeTheme == .midnightCalm ? .dark : nil)
     .onChange(of: reminderCount) { _, _ in
+      synchronizeCustomReminderTimes()
+    }
+    .onChange(of: selectedTargetCount) { _, _ in
+      synchronizeCustomReminderTimes()
+    }
+    .onChange(of: customTargetCount) { _, _ in
       synchronizeCustomReminderTimes()
     }
     .onChange(of: reminderMode) { _, newValue in
@@ -419,26 +439,28 @@ struct HabitFormView: View {
 
         if showsReminderConfig {
           VStack(alignment: .leading, spacing: 14) {
-            HStack {
-              VStack(alignment: .leading, spacing: 2) {
-                Text("How many reminders?")
-                  .font(.system(size: 15, weight: .semibold))
-                Text("Independent of your daily goal.")
-                  .font(.caption)
-                  .foregroundStyle(.secondary)
+            if allowsIndependentReminderCount {
+              HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                  Text("How many reminders?")
+                    .font(.system(size: 15, weight: .semibold))
+                  Text("Spread across a single day.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                }
+                Spacer()
+                Stepper(
+                  "\(effectiveReminderCount)",
+                  value: $reminderCount,
+                  in: Self.reminderCountRange
+                )
+                .labelsHidden()
+                Text("\(effectiveReminderCount)")
+                  .font(.system(size: 17, weight: .semibold, design: .rounded))
+                  .monospacedDigit()
+                  .frame(minWidth: 24)
+                  .contentTransition(.numericText())
               }
-              Spacer()
-              Stepper(
-                "\(reminderCount)",
-                value: $reminderCount,
-                in: Self.reminderCountRange
-              )
-              .labelsHidden()
-              Text("\(reminderCount)")
-                .font(.system(size: 17, weight: .semibold, design: .rounded))
-                .monospacedDigit()
-                .frame(minWidth: 24)
-                .contentTransition(.numericText())
             }
 
             if showsReminderPicker {
@@ -448,7 +470,7 @@ struct HabitFormView: View {
                   .foregroundStyle(.secondary)
 
                 ForEach(
-                  Array(customReminderTimes.prefix(reminderCount).indices), id: \.self
+                  Array(customReminderTimes.prefix(effectiveReminderCount).indices), id: \.self
                 ) { index in
                   DatePicker(
                     reminderPickerTitle(for: index),
@@ -655,7 +677,7 @@ struct HabitFormView: View {
   }
 
   private func synchronizeCustomReminderTimes() {
-    let count = max(reminderCount, 1)
+    let count = max(effectiveReminderCount, 1)
 
     if customReminderTimes.count > count {
       customReminderTimes = Array(customReminderTimes.prefix(count))
@@ -765,7 +787,7 @@ struct HabitFormView: View {
       completedCountToday: habit?.completedCountToday ?? 0,
       remindersEnabled: remindersEnabled,
       reminderTimes: savedReminderTimes,
-      reminderCount: max(reminderCount, 1),
+      reminderCount: max(effectiveReminderCount, 1),
       focusDurationMinutes: focusTimerEnabled ? max(focusDurationMinutes, 1) : nil
     )
 

@@ -16,6 +16,7 @@ enum OnboardingStep: Int, CaseIterable {
   case color
   case frequency
   case reminder
+  case focusTimer
   case permission
   case celebration
 
@@ -27,6 +28,7 @@ enum OnboardingStep: Int, CaseIterable {
     .color,
     .frequency,
     .reminder,
+    .focusTimer,
     .permission,
   ]
 
@@ -48,6 +50,8 @@ enum OnboardingStep: Int, CaseIterable {
       return "Set a daily goal"
     case .reminder:
       return "Choose reminders"
+    case .focusTimer:
+      return "Focus Timer"
     case .permission:
       return "Stay reminded"
     case .celebration:

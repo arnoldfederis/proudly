@@ -76,6 +76,9 @@ struct OnboardingFlowView: View {
       guard newValue == .custom else { return }
       viewModel.synchronizeCustomReminderTimes()
     }
+    .onChange(of: viewModel.reminderCount) { _, _ in
+      viewModel.synchronizeCustomReminderTimes()
+    }
   }
 
   private var header: some View {
@@ -268,10 +271,15 @@ struct OnboardingFlowView: View {
             reminderButton(option)
           }
 
+          if viewModel.remindersEnabled, viewModel.allowsIndependentReminderCount {
+            reminderCountStepper
+          }
+
           if showsCustomReminderPicker {
             VStack(alignment: .leading, spacing: 12) {
               ForEach(
-                Array(viewModel.customReminderTimes.prefix(viewModel.dailyTargetCount).indices),
+                Array(
+                  viewModel.customReminderTimes.prefix(viewModel.effectiveReminderCount).indices),
                 id: \.self
               ) { index in
                 DatePicker(
@@ -288,7 +296,7 @@ struct OnboardingFlowView: View {
                 .id(viewModel.customReminderTimes[index])
               }
 
-              if viewModel.dailyTargetCount > 1 {
+              if viewModel.effectiveReminderCount > 1 {
                 Text("Later reminders stay after the earlier ones.")
                   .font(.caption)
                   .foregroundStyle(.secondary)
@@ -316,6 +324,13 @@ struct OnboardingFlowView: View {
             .proudlyGlass(cornerRadius: 18)
           }
         }
+      }
+    case .focusTimer:
+      stepContainer(
+        title: "Want a Focus Timer for this habit?",
+        subtitle: "A gentle countdown to keep you present. Optional."
+      ) {
+        focusTimerStep
       }
     case .permission:
       stepContainer(
@@ -716,6 +731,97 @@ struct OnboardingFlowView: View {
   private func reminderPickerTitle(for index: Int) -> String {
     let ordinals = ["First", "Second", "Third", "Fourth", "Fifth", "Sixth", "Seventh", "Eighth"]
     return index < ordinals.count ? ordinals[index] + " reminder" : "Reminder \(index + 1)"
+  }
+
+  private var reminderCountStepper: some View {
+    HStack(spacing: 12) {
+      VStack(alignment: .leading, spacing: 2) {
+        Text("How many reminders?")
+          .font(.system(size: 15, weight: .semibold))
+        Text("Independent of your daily goal.")
+          .font(.caption)
+          .foregroundStyle(.secondary)
+      }
+      Spacer()
+      Stepper(
+        "\(viewModel.reminderCount)",
+        value: $viewModel.reminderCount,
+        in: OnboardingViewModel.reminderCountRange
+      )
+      .labelsHidden()
+      Text("\(viewModel.reminderCount)")
+        .font(.system(size: 17, weight: .semibold, design: .rounded))
+        .monospacedDigit()
+        .frame(minWidth: 24)
+        .contentTransition(.numericText())
+    }
+    .padding(16)
+    .proudlyGlass(cornerRadius: 20)
+    .transition(.opacity.combined(with: .move(edge: .top)))
+  }
+
+  private var focusTimerStep: some View {
+    VStack(spacing: 12) {
+      Toggle(
+        isOn: $viewModel.focusTimerEnabled.animation(.spring(response: 0.32, dampingFraction: 0.82))
+      ) {
+        VStack(alignment: .leading, spacing: 4) {
+          Text("Use a Focus Timer")
+            .font(.system(size: 16, weight: .semibold))
+          Text("A gentle countdown for this habit. Optional.")
+            .font(.caption)
+            .foregroundStyle(.secondary)
+        }
+      }
+      .tint(theme.activeTheme.accentColor)
+      .padding(18)
+      .proudlyGlass(cornerRadius: 20)
+
+      if viewModel.focusTimerEnabled {
+        VStack(alignment: .leading, spacing: 12) {
+          Text("Duration")
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(.secondary)
+
+          ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 10) {
+              ForEach(FocusTimerStore.durationOptions, id: \.self) { minutes in
+                Button {
+                  viewModel.focusDurationMinutes = minutes
+                  Haptics.selection()
+                } label: {
+                  Text(focusDurationLabel(minutes))
+                    .font(.system(size: 14, weight: .semibold))
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
+                    .background(
+                      viewModel.focusDurationMinutes == minutes
+                        ? theme.activeTheme.accentColor
+                        : theme.activeTheme.accentColor.opacity(0.14)
+                    )
+                    .foregroundStyle(
+                      viewModel.focusDurationMinutes == minutes ? .white : .primary
+                    )
+                    .clipShape(Capsule())
+                }
+                .buttonStyle(.plain)
+              }
+            }
+          }
+        }
+        .padding(18)
+        .proudlyGlass(cornerRadius: 20)
+        .transition(.opacity.combined(with: .move(edge: .top)))
+      }
+    }
+    .animation(.spring(response: 0.35, dampingFraction: 0.8), value: viewModel.focusTimerEnabled)
+  }
+
+  private func focusDurationLabel(_ minutes: Int) -> String {
+    if minutes >= 60, minutes % 60 == 0 {
+      return "\(minutes / 60)h"
+    }
+    return "\(minutes)m"
   }
 
   private var stepTransition: AnyTransition {

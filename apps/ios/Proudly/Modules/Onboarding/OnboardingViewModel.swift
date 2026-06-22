@@ -23,6 +23,11 @@ final class OnboardingViewModel {
   var customFrequency: Int = 5
   var reminderOption: OnboardingReminderOption = .none
   var customReminderTimes: [Date] = [NotificationManager.reminderDate(from: "09:00")]
+  var reminderCount: Int = 1
+  var focusTimerEnabled: Bool = false
+  var focusDurationMinutes: Int = 25
+
+  static let reminderCountRange: ClosedRange<Int> = 1...8
 
   var isSaving: Bool = false
   var permissionDeniedMessage: String?
@@ -56,6 +61,20 @@ final class OnboardingViewModel {
     selectedFrequency == 0 ? max(customFrequency, 4) : selectedFrequency
   }
 
+  /// Number of reminders to schedule. When the daily target is 1, the user
+  /// can pick an independent count via a stepper. Otherwise it tracks the
+  /// daily target so every check-in has a matching reminder.
+  var effectiveReminderCount: Int {
+    if dailyTargetCount == 1 {
+      return min(
+        max(reminderCount, Self.reminderCountRange.lowerBound),
+        Self.reminderCountRange.upperBound)
+    }
+    return dailyTargetCount
+  }
+
+  var allowsIndependentReminderCount: Bool { dailyTargetCount == 1 }
+
   var currentInputStepIndex: Int? {
     OnboardingStep.inputSteps.firstIndex(of: currentStep)
   }
@@ -69,10 +88,8 @@ final class OnboardingViewModel {
     switch currentStep {
     case .permission:
       return "Allow Notifications"
-    case .reminder where !remindersEnabled:
+    case .focusTimer where !remindersEnabled:
       return "Create My Habit"
-    case .reminder:
-      return "Continue"
     default:
       return "Continue"
     }
@@ -80,7 +97,8 @@ final class OnboardingViewModel {
 
   var canContinue: Bool {
     switch currentStep {
-    case .welcome, .icon, .description, .color, .frequency, .reminder, .permission, .celebration:
+    case .welcome, .icon, .description, .color, .frequency, .reminder, .focusTimer, .permission,
+      .celebration:
       return true
     case .userName:
       return !userName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
@@ -95,35 +113,36 @@ final class OnboardingViewModel {
 
   var resolvedReminderTimes: [String] {
     guard remindersEnabled else { return [] }
+    let count = effectiveReminderCount
 
     switch reminderOption {
     case .none:
       return []
     case .morning:
       return NotificationManager.generatedReminderTimes(
-        for: dailyTargetCount,
-        firstTime: NotificationManager.reminderDate(from: morningAnchor(for: dailyTargetCount))
+        for: count,
+        firstTime: NotificationManager.reminderDate(from: morningAnchor(for: count))
       )
     case .afternoon:
       return NotificationManager.generatedReminderTimes(
-        for: dailyTargetCount,
-        firstTime: NotificationManager.reminderDate(from: afternoonAnchor(for: dailyTargetCount))
+        for: count,
+        firstTime: NotificationManager.reminderDate(from: afternoonAnchor(for: count))
       )
     case .evening:
       return NotificationManager.generatedReminderTimes(
-        for: dailyTargetCount,
-        firstTime: NotificationManager.reminderDate(from: eveningAnchor(for: dailyTargetCount))
+        for: count,
+        firstTime: NotificationManager.reminderDate(from: eveningAnchor(for: count))
       )
     case .custom:
       return
         customReminderTimes
-        .prefix(dailyTargetCount)
+        .prefix(count)
         .map(NotificationManager.timeString(from:))
     }
   }
 
   func synchronizeCustomReminderTimes() {
-    let count = max(dailyTargetCount, 1)
+    let count = max(effectiveReminderCount, 1)
 
     if customReminderTimes.count > count {
       customReminderTimes = Array(customReminderTimes.prefix(count))
@@ -192,7 +211,7 @@ final class OnboardingViewModel {
     guard canContinue else { return }
 
     switch currentStep {
-    case .reminder where !remindersEnabled:
+    case .focusTimer where !remindersEnabled:
       await createHabit(using: repository, remindersAuthorized: false)
     case .permission:
       let granted = await NotificationManager.shared.requestAuthorizationIfNeeded()
@@ -210,7 +229,7 @@ final class OnboardingViewModel {
   private func moveToNextStep() {
     permissionDeniedMessage = nil
 
-    if currentStep == .reminder && remindersEnabled {
+    if currentStep == .focusTimer && remindersEnabled {
       currentStep = .permission
       return
     }
@@ -245,8 +264,8 @@ final class OnboardingViewModel {
       completedCountToday: 0,
       remindersEnabled: remindersEnabled && remindersAuthorized,
       reminderTimes: remindersAuthorized ? resolvedReminderTimes : [],
-      reminderCount: max(resolvedReminderTimes.count, 1),
-      focusDurationMinutes: nil
+      reminderCount: max(effectiveReminderCount, 1),
+      focusDurationMinutes: focusTimerEnabled ? max(focusDurationMinutes, 1) : nil
     )
 
     repository.addHabit(habit, markSeeded: true, showsToast: false)

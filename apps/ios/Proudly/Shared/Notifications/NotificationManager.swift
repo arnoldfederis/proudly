@@ -102,12 +102,25 @@ final class NotificationManager {
   static func generatedReminderTimes(for dailyTargetCount: Int, firstTime: Date) -> [String] {
     let calendar = Calendar.current
     let count = max(dailyTargetCount, 1)
-    let intervalsByCount: [Int: Int] = [2: 9, 3: 5, 4: 4]
-    let intervalHours = intervalsByCount[count] ?? 4
+    let firstString = Self.timeString(from: firstTime)
 
-    return (0..<count).compactMap { index in
-      let date = calendar.date(byAdding: .hour, value: intervalHours * index, to: firstTime)
-      return date.map(Self.timeString(from:))
+    guard count > 1 else { return [firstString] }
+
+    let intervalsByCount: [Int: Int] = [2: 9, 3: 5, 4: 4]
+    let defaultStepMinutes = (intervalsByCount[count] ?? 4) * 60
+
+    let firstHour = calendar.component(.hour, from: firstTime)
+    let firstMinute = calendar.component(.minute, from: firstTime)
+    let firstMinutes = firstHour * 60 + firstMinute
+    let endMinutes = 23 * 60 + 59
+    let maxStepMinutes = max((endMinutes - firstMinutes) / (count - 1), 1)
+    let stepMinutes = min(defaultStepMinutes, maxStepMinutes)
+
+    return (0..<count).map { index in
+      let totalMinutes = min(firstMinutes + stepMinutes * index, endMinutes)
+      let hour = totalMinutes / 60
+      let minute = totalMinutes % 60
+      return String(format: "%02d:%02d", hour, minute)
     }
   }
 
