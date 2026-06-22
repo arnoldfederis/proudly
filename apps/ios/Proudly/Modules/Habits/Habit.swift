@@ -22,6 +22,8 @@ struct Habit: Identifiable {
   var completedCountToday: Int
   var remindersEnabled: Bool
   var reminderTimes: [String]
+  var reminderCount: Int
+  var focusDurationMinutes: Int?
 
   var isCompletedToday: Bool {
     completedCountToday >= max(dailyTargetCount, 1)
@@ -41,6 +43,10 @@ struct Habit: Identifiable {
 
   var reminder: String? {
     reminderTimes.first
+  }
+
+  var hasFocusTimer: Bool {
+    (focusDurationMinutes ?? 0) > 0
   }
 }
 
@@ -64,6 +70,8 @@ extension Habit: Hashable {
       && lhs.completedCountToday == rhs.completedCountToday
       && lhs.remindersEnabled == rhs.remindersEnabled
       && lhs.reminderTimes == rhs.reminderTimes
+      && lhs.reminderCount == rhs.reminderCount
+      && lhs.focusDurationMinutes == rhs.focusDurationMinutes
       && lhs.completedDates == rhs.completedDates
       && lhs.completionCountsByDate == rhs.completionCountsByDate
   }
@@ -83,7 +91,9 @@ extension Habit {
       dailyTargetCount: 1,
       completedCountToday: 0,
       remindersEnabled: false,
-      reminderTimes: []
+      reminderTimes: [],
+      reminderCount: 1,
+      focusDurationMinutes: nil
     ),
     Habit(
       id: UUID(), name: "Walk 10 minutes", icon: "figure.walk",
@@ -94,7 +104,9 @@ extension Habit {
       dailyTargetCount: 1,
       completedCountToday: 0,
       remindersEnabled: false,
-      reminderTimes: []
+      reminderTimes: [],
+      reminderCount: 1,
+      focusDurationMinutes: nil
     ),
     Habit(
       id: UUID(), name: "Read 10 pages", icon: "book.fill",
@@ -105,7 +117,9 @@ extension Habit {
       dailyTargetCount: 1,
       completedCountToday: 0,
       remindersEnabled: false,
-      reminderTimes: []
+      reminderTimes: [],
+      reminderCount: 1,
+      focusDurationMinutes: 25
     ),
   ]
 }

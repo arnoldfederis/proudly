@@ -20,6 +20,12 @@ final class PersistentHabit {
   var reminderTimes: String
   var reminderHour: Int?
   var reminderMinute: Int?
+  /// Decoupled from `dailyTargetCount`. Optional so legacy rows can fall
+  /// back to the count derived from `reminderTimes`.
+  var reminderCount: Int?
+  /// Optional Focus Timer duration in minutes. `nil` means the habit has
+  /// no Focus Timer configured.
+  var focusDurationMinutes: Int?
   var createdAt: Date
   var updatedAt: Date
   var isArchived: Bool
@@ -38,6 +44,8 @@ final class PersistentHabit {
     reminderTimes: String = "",
     reminderHour: Int? = nil,
     reminderMinute: Int? = nil,
+    reminderCount: Int? = nil,
+    focusDurationMinutes: Int? = nil,
     createdAt: Date = .now,
     updatedAt: Date = .now,
     isArchived: Bool = false
@@ -52,6 +60,8 @@ final class PersistentHabit {
     self.reminderTimes = reminderTimes
     self.reminderHour = reminderHour
     self.reminderMinute = reminderMinute
+    self.reminderCount = reminderCount
+    self.focusDurationMinutes = focusDurationMinutes
     self.createdAt = createdAt
     self.updatedAt = updatedAt
     self.isArchived = isArchived

@@ -28,6 +28,7 @@ struct ThemeView: View {
       }
       .navigationTitle("Theme")
       .navigationBarTitleDisplayMode(.large)
+      .toolbar(.hidden, for: .tabBar)
     }
     .preferredColorScheme(theme.activeTheme == .midnightCalm ? .dark : SystemAppearance.colorScheme)
     .onAppear {

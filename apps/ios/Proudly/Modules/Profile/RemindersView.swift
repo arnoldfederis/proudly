@@ -36,6 +36,7 @@ struct RemindersView: View {
       }
     }
     .navigationTitle("Reminders")
+    .toolbar(.hidden, for: .tabBar)
   }
 
   private var summaryCard: some View {

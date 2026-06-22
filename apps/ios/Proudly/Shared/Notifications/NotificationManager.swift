@@ -188,4 +188,42 @@ final class NotificationManager {
     components.minute = 0
     return Calendar.current.date(from: components) ?? .now
   }
+
+  // MARK: - Focus Timer notifications
+
+  func scheduleFocusComplete(habitID: UUID, habitName: String, fireAt date: Date) async {
+    await cancelFocusComplete(habitID: habitID)
+
+    let granted = await requestAuthorizationIfNeeded()
+    guard granted else { return }
+
+    let interval = max(date.timeIntervalSinceNow, 1)
+    let content = UNMutableNotificationContent()
+    content.title = "Focus complete"
+    content.body = "Your \(habitName) session is done. Mark it complete when you're ready."
+    content.sound = .default
+    content.userInfo = [
+      "habitID": habitID.uuidString,
+      "kind": "focusComplete",
+    ]
+
+    let trigger = UNTimeIntervalNotificationTrigger(timeInterval: interval, repeats: false)
+    let request = UNNotificationRequest(
+      identifier: Self.focusIdentifier(for: habitID),
+      content: content,
+      trigger: trigger
+    )
+
+    try? await center.add(request)
+  }
+
+  func cancelFocusComplete(habitID: UUID) async {
+    let identifier = Self.focusIdentifier(for: habitID)
+    center.removePendingNotificationRequests(withIdentifiers: [identifier])
+    center.removeDeliveredNotifications(withIdentifiers: [identifier])
+  }
+
+  static func focusIdentifier(for habitID: UUID) -> String {
+    "proudly.focus.\(habitID.uuidString)"
+  }
 }

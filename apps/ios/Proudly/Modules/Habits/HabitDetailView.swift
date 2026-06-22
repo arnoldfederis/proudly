@@ -12,10 +12,13 @@ struct HabitDetailView: View {
   @Environment(ThemeViewModel.self) private var theme
   @Environment(HabitRepository.self) private var repository
 
+  @Environment(FocusTimerStore.self) private var focusTimerStore
   @State private var habit: Habit
   @State private var isEditPresented = false
   @State private var isArchiveConfirmationPresented = false
+  @State private var isReplaceTimerConfirmationPresented = false
   @State private var animateContent = false
+  @State private var hasOfferedCompletion = false
 
   let onSave: (Habit) -> Void
 
@@ -34,6 +37,10 @@ struct HabitDetailView: View {
             .detailEntrance(animateContent, delay: 0.00)
           progressCard
             .detailEntrance(animateContent, delay: 0.06)
+          if habit.hasFocusTimer || isThisHabitsTimerActive {
+            focusTimerCard
+              .detailEntrance(animateContent, delay: 0.09)
+          }
           statsRow
             .detailEntrance(animateContent, delay: 0.12)
           sevenDayPreviewCard
@@ -57,6 +64,7 @@ struct HabitDetailView: View {
         dismiss()
       }
     }
+    .toolbar(.hidden, for: .tabBar)
     .toolbar {
       ToolbarItem(placement: .topBarTrailing) {
         Button(role: .destructive) {
@@ -318,6 +326,189 @@ struct HabitDetailView: View {
     repository.archiveHabit(habit)
     dismiss()
   }
+
+  // MARK: - Focus Timer
+
+  private var isThisHabitsTimerActive: Bool {
+    focusTimerStore.session?.habitID == habit.id
+  }
+
+  private var focusTimerCard: some View {
+    let remaining = focusTimerStore.remaining()
+    let isPaused = focusTimerStore.isPaused && isThisHabitsTimerActive
+    let isComplete = isThisHabitsTimerActive && focusTimerStore.isComplete()
+    let configuredDuration = TimeInterval((habit.focusDurationMinutes ?? 25) * 60)
+    let displayInterval =
+      isThisHabitsTimerActive ? (isComplete ? 0 : remaining) : configuredDuration
+
+    return VStack(alignment: .leading, spacing: 14) {
+      HStack {
+        Label("Focus Timer", systemImage: "timer")
+          .font(.system(size: 15, weight: .semibold))
+          .foregroundStyle(habit.color)
+        Spacer()
+        if isThisHabitsTimerActive, !isComplete {
+          Text(isPaused ? "Paused" : "Running")
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(.secondary)
+        }
+      }
+
+      Text(FocusTimerStore.formatted(displayInterval))
+        .font(.system(size: 44, weight: .bold, design: .rounded))
+        .monospacedDigit()
+        .foregroundStyle(.primary)
+        .contentTransition(.numericText())
+
+      if isComplete {
+        VStack(alignment: .leading, spacing: 6) {
+          Text("Focus complete 🌿")
+            .font(.system(size: 16, weight: .semibold))
+          Text("Mark \(habit.name) when you're ready.")
+            .font(.caption)
+            .foregroundStyle(.secondary)
+        }
+      } else if isPaused {
+        Text("Paused with \(FocusTimerStore.formatted(remaining)) left.")
+          .font(.caption)
+          .foregroundStyle(.secondary)
+      } else if isThisHabitsTimerActive {
+        Text("Stay with it. You're doing great.")
+          .font(.caption)
+          .foregroundStyle(.secondary)
+      } else if habit.hasFocusTimer {
+        Text("\(habit.focusDurationMinutes ?? 25) minutes • gentle and optional.")
+          .font(.caption)
+          .foregroundStyle(.secondary)
+      }
+
+      focusTimerControls(isComplete: isComplete, isPaused: isPaused)
+    }
+    .padding(20)
+    .proudlyGlass()
+    .onChange(of: focusTimerStore.tick) { _, _ in
+      handleFocusTimerTick()
+    }
+  }
+
+  @ViewBuilder
+  private func focusTimerControls(isComplete: Bool, isPaused: Bool) -> some View {
+    if isComplete {
+      HStack(spacing: 10) {
+        Button {
+          Haptics.notification(.success)
+          if !habit.isCompletedToday {
+            repository.incrementCompletion(for: habit)
+          }
+          focusTimerStore.stop()
+        } label: {
+          Label("Complete Habit", systemImage: "checkmark.circle.fill")
+            .font(.system(size: 16, weight: .semibold))
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 14)
+            .background(habit.color)
+            .foregroundStyle(.white)
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+        }
+        .buttonStyle(.plain)
+
+        Button {
+          Haptics.selection()
+          focusTimerStore.stop()
+        } label: {
+          Label("Dismiss", systemImage: "xmark.circle.fill")
+            .font(.system(size: 16, weight: .semibold))
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 14)
+            .background(habit.color.opacity(0.12))
+            .foregroundStyle(habit.color)
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+        }
+        .buttonStyle(.plain)
+      }
+    } else if isThisHabitsTimerActive {
+      HStack(spacing: 10) {
+        Button {
+          Haptics.selection()
+          if isPaused {
+            focusTimerStore.resume()
+          } else {
+            focusTimerStore.pause()
+          }
+        } label: {
+          Label(
+            isPaused ? "Resume" : "Pause",
+            systemImage: isPaused ? "play.circle.fill" : "pause.circle.fill"
+          )
+          .font(.system(size: 16, weight: .semibold))
+          .frame(maxWidth: .infinity)
+          .padding(.vertical, 14)
+          .background(habit.color.opacity(0.16))
+          .foregroundStyle(habit.color)
+          .clipShape(RoundedRectangle(cornerRadius: 16))
+        }
+        .buttonStyle(.plain)
+
+        Button {
+          Haptics.impact(.soft)
+          focusTimerStore.stop()
+        } label: {
+          Label("End", systemImage: "stop.circle.fill")
+            .font(.system(size: 16, weight: .semibold))
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 14)
+            .background(habit.color.opacity(0.08))
+            .foregroundStyle(.primary)
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+        }
+        .buttonStyle(.plain)
+      }
+    } else {
+      Button {
+        Haptics.selection()
+        if focusTimerStore.isRunning {
+          isReplaceTimerConfirmationPresented = true
+        } else {
+          startFocusTimer()
+        }
+      } label: {
+        Label("Start Focus", systemImage: "play.circle.fill")
+          .font(.system(size: 17, weight: .semibold))
+          .frame(maxWidth: .infinity)
+          .padding(.vertical, 15)
+          .background(habit.color)
+          .foregroundStyle(.white)
+          .clipShape(RoundedRectangle(cornerRadius: 18))
+      }
+      .buttonStyle(.plain)
+      .confirmationDialog(
+        "Stop current focus session?",
+        isPresented: $isReplaceTimerConfirmationPresented,
+        titleVisibility: .visible
+      ) {
+        Button("Stop and start new", role: .destructive) {
+          focusTimerStore.stop()
+          startFocusTimer()
+        }
+      } message: {
+        Text("Starting this timer will stop your current focus session.")
+      }
+    }
+  }
+
+  private func startFocusTimer() {
+    let duration = TimeInterval(max(habit.focusDurationMinutes ?? 25, 1) * 60)
+    hasOfferedCompletion = false
+    focusTimerStore.start(habit: habit, duration: duration)
+  }
+
+  private func handleFocusTimerTick() {
+    guard isThisHabitsTimerActive, focusTimerStore.isComplete(), !hasOfferedCompletion else {
+      return
+    }
+    hasOfferedCompletion = true
+    Haptics.notification(.success)
+  }
 }
 
 extension View {
@@ -366,4 +557,5 @@ struct StatCard: View {
   .environment(ThemeViewModel())
   .environment(SubscriptionStore())
   .environment(HabitRepository.preview)
+  .environment(FocusTimerStore.shared)
 }

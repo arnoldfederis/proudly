@@ -19,6 +19,7 @@ struct ProfileView: View {
   @State private var showSubscriptionManagement = false
   @State private var navigateToProudMoments = false
   @State private var navigateToReminders = false
+  @State private var navigateToSiri = false
 
   private let termsURL = URL(string: "https://proudly.app/terms")
   private let privacyURL = URL(string: "https://proudly.app/privacy")
@@ -58,6 +59,9 @@ struct ProfileView: View {
       }
       .navigationDestination(isPresented: $navigateToReminders) {
         RemindersView()
+      }
+      .navigationDestination(isPresented: $navigateToSiri) {
+        SiriShortcutsView()
       }
     }
   }
@@ -162,6 +166,19 @@ struct ProfileView: View {
               .font(.caption2)
               .foregroundStyle(.tertiary)
           }
+        }
+      }
+      .buttonStyle(.plain)
+
+      Divider().padding(.leading, 56).opacity(0.4)
+
+      Button {
+        navigateToSiri = true
+      } label: {
+        ProfileRow(icon: "mic.fill", label: "Siri Shortcuts", color: ProudlyTheme.purple) {
+          Image(systemName: "chevron.right")
+            .font(.caption2)
+            .foregroundStyle(.tertiary)
         }
       }
       .buttonStyle(.plain)

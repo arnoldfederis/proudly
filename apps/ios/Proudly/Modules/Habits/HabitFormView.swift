@@ -17,23 +17,17 @@ private enum HabitReminderMode: String, CaseIterable, Identifiable {
 
   var title: String {
     switch self {
-    case .none:
-      return "No reminder"
-    case .basedOnTarget:
-      return "Based on daily target"
-    case .customFirstTime:
-      return "Custom reminder times"
+    case .none: return "No reminder"
+    case .basedOnTarget: return "Gentle defaults"
+    case .customFirstTime: return "Custom reminder times"
     }
   }
 
   var subtitle: String {
     switch self {
-    case .none:
-      return "Keep this habit quiet for now."
-    case .basedOnTarget:
-      return "Spread reminders gently through the day."
-    case .customFirstTime:
-      return "Pick each reminder time yourself."
+    case .none: return "Keep this habit quiet for now."
+    case .basedOnTarget: return "Spread reminders gently through the day."
+    case .customFirstTime: return "Pick each reminder time yourself."
     }
   }
 }
@@ -54,10 +48,16 @@ struct HabitFormView: View {
   @State private var selectedTargetCount: Int
   @State private var customTargetCount: Int
   @State private var reminderMode: HabitReminderMode
+  @State private var reminderCount: Int
   @State private var customReminderTimes: [Date]
+  @State private var focusTimerEnabled: Bool
+  @State private var focusDurationMinutes: Int
   @State private var isSaving = false
   @State private var permissionMessage: String?
   @FocusState private var descriptionFocused: Bool
+
+  private static let reminderCountRange: ClosedRange<Int> = 1...8
+  private static let defaultFocusDuration = 25
 
   private let icons = Self.iconOptions
   private let colors: [Color] = [
@@ -74,9 +74,7 @@ struct HabitFormView: View {
 
     let selectedIcon = {
       guard let icon = habit?.icon.trimmingCharacters(in: .whitespacesAndNewlines), !icon.isEmpty
-      else {
-        return iconOptions[0]
-      }
+      else { return iconOptions[0] }
       return icon
     }()
 
@@ -85,8 +83,12 @@ struct HabitFormView: View {
     let target = habit?.dailyTargetCount ?? 1
     let selectedTargetCount = (1...4).contains(target) ? target : 0
     let resolvedReminderMode = Self.resolveReminderMode(for: habit)
+    let resolvedReminderCount: Int = {
+      let count = habit?.reminderCount ?? max(habit?.reminderTimes.count ?? 1, 1)
+      return min(max(count, Self.reminderCountRange.lowerBound), Self.reminderCountRange.upperBound)
+    }()
     let initialCustomReminderTimes = Self.resolveCustomReminderDates(
-      for: habit, dailyTargetCount: target)
+      for: habit, reminderCount: resolvedReminderCount)
 
     _habitName = State(initialValue: habit?.name ?? "")
     _habitDescription = State(initialValue: habit?.note ?? "")
@@ -97,7 +99,11 @@ struct HabitFormView: View {
     _selectedTargetCount = State(initialValue: selectedTargetCount)
     _customTargetCount = State(initialValue: selectedTargetCount == 0 ? max(target, 4) : 5)
     _reminderMode = State(initialValue: resolvedReminderMode)
+    _reminderCount = State(initialValue: resolvedReminderCount)
     _customReminderTimes = State(initialValue: initialCustomReminderTimes)
+    _focusTimerEnabled = State(initialValue: (habit?.focusDurationMinutes ?? 0) > 0)
+    _focusDurationMinutes = State(
+      initialValue: habit?.focusDurationMinutes ?? Self.defaultFocusDuration)
   }
 
   private static let iconOptions = [
@@ -128,7 +134,7 @@ struct HabitFormView: View {
     case .none:
       return []
     case .basedOnTarget:
-      return NotificationManager.defaultReminderTimes(for: effectiveDailyTargetCount)
+      return NotificationManager.defaultReminderTimes(for: reminderCount)
     case .customFirstTime:
       return normalizedCustomReminderTimes
     }
@@ -136,17 +142,13 @@ struct HabitFormView: View {
 
   private var normalizedCustomReminderTimes: [String] {
     customReminderTimes
-      .prefix(effectiveDailyTargetCount)
+      .prefix(reminderCount)
       .map(NotificationManager.timeString(from:))
   }
 
-  private var showsReminderPicker: Bool {
-    reminderMode == .customFirstTime
-  }
-
-  private var showsReminderPreview: Bool {
-    reminderMode != .none && !reminderTimes.isEmpty
-  }
+  private var showsReminderConfig: Bool { reminderMode != .none }
+  private var showsReminderPicker: Bool { reminderMode == .customFirstTime }
+  private var showsReminderPreview: Bool { reminderMode != .none && !reminderTimes.isEmpty }
 
   var body: some View {
     NavigationStack {
@@ -161,6 +163,7 @@ struct HabitFormView: View {
             colorSection
             frequencySection
             reminderSection
+            focusTimerSection
           }
           .padding(.horizontal, 20)
           .padding(.top, 24)
@@ -175,9 +178,7 @@ struct HabitFormView: View {
         }
         ToolbarItem(placement: .confirmationAction) {
           Button(isEditing ? "Save" : "Add") {
-            Task {
-              await saveHabit()
-            }
+            Task { await saveHabit() }
           }
           .fontWeight(.semibold)
           .disabled(!canSave || isSaving)
@@ -189,9 +190,7 @@ struct HabitFormView: View {
         actions: {
           Button("OK") { permissionMessage = nil }
         },
-        message: {
-          Text(permissionMessage ?? "")
-        }
+        message: { Text(permissionMessage ?? "") }
       )
       .sheet(isPresented: $isSFSymbolPickerPresented) {
         SFSymbolPickerView(
@@ -203,10 +202,7 @@ struct HabitFormView: View {
       }
     }
     .preferredColorScheme(theme.activeTheme == .midnightCalm ? .dark : nil)
-    .onChange(of: selectedTargetCount) { _, _ in
-      synchronizeCustomReminderTimes()
-    }
-    .onChange(of: customTargetCount) { _, _ in
+    .onChange(of: reminderCount) { _, _ in
       synchronizeCustomReminderTimes()
     }
     .onChange(of: reminderMode) { _, newValue in
@@ -228,10 +224,7 @@ struct HabitFormView: View {
               selectedIcon = icons[index]
               Haptics.selection()
             } label: {
-              iconBubble(
-                icon: icons[index],
-                isSelected: selectedIcon == icons[index]
-              )
+              iconBubble(icon: icons[index], isSelected: selectedIcon == icons[index])
             }
             .buttonStyle(.plain)
           }
@@ -353,10 +346,12 @@ struct HabitFormView: View {
           VStack(alignment: .leading, spacing: 4) {
             Text("Custom")
               .font(.system(size: 16, weight: .semibold))
-            Text("\(effectiveDailyTargetCount) times each day")
-              .font(.caption)
-              .foregroundStyle(.secondary)
-              .contentTransition(.numericText())
+            Text(
+              "\(effectiveDailyTargetCount) \(effectiveDailyTargetCount == 1 ? "time" : "times") each day"
+            )
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .contentTransition(.numericText())
           }
 
           Spacer()
@@ -422,12 +417,38 @@ struct HabitFormView: View {
           .buttonStyle(.plain)
         }
 
-        if showsReminderPicker || showsReminderPreview {
-          VStack(alignment: .leading, spacing: 10) {
+        if showsReminderConfig {
+          VStack(alignment: .leading, spacing: 14) {
+            HStack {
+              VStack(alignment: .leading, spacing: 2) {
+                Text("How many reminders?")
+                  .font(.system(size: 15, weight: .semibold))
+                Text("Independent of your daily goal.")
+                  .font(.caption)
+                  .foregroundStyle(.secondary)
+              }
+              Spacer()
+              Stepper(
+                "\(reminderCount)",
+                value: $reminderCount,
+                in: Self.reminderCountRange
+              )
+              .labelsHidden()
+              Text("\(reminderCount)")
+                .font(.system(size: 17, weight: .semibold, design: .rounded))
+                .monospacedDigit()
+                .frame(minWidth: 24)
+                .contentTransition(.numericText())
+            }
+
             if showsReminderPicker {
               VStack(alignment: .leading, spacing: 12) {
+                Text("Reminder times")
+                  .font(.caption.weight(.semibold))
+                  .foregroundStyle(.secondary)
+
                 ForEach(
-                  Array(customReminderTimes.prefix(effectiveDailyTargetCount).indices), id: \.self
+                  Array(customReminderTimes.prefix(reminderCount).indices), id: \.self
                 ) { index in
                   DatePicker(
                     reminderPickerTitle(for: index),
@@ -449,7 +470,7 @@ struct HabitFormView: View {
             }
 
             if showsReminderPreview {
-              VStack(alignment: .leading) {
+              VStack(alignment: .leading, spacing: 4) {
                 Text("Planned reminders")
                   .font(.caption.weight(.semibold))
                   .foregroundStyle(.secondary)
@@ -464,6 +485,10 @@ struct HabitFormView: View {
               }
               .frame(maxWidth: .infinity, alignment: .leading)
             }
+
+            Text("Reminders are local to your device.")
+              .font(.caption2)
+              .foregroundStyle(.tertiary)
           }
           .padding(16)
           .proudlyGlass(cornerRadius: 16)
@@ -472,6 +497,72 @@ struct HabitFormView: View {
       }
     }
     .animation(.spring(response: 0.35, dampingFraction: 0.8), value: reminderMode)
+  }
+
+  private var focusTimerSection: some View {
+    VStack(alignment: .leading, spacing: 10) {
+      Text("Focus Timer")
+        .font(.subheadline)
+        .foregroundStyle(.secondary)
+
+      VStack(spacing: 12) {
+        Toggle(isOn: $focusTimerEnabled.animation(.spring(response: 0.32, dampingFraction: 0.82))) {
+          VStack(alignment: .leading, spacing: 4) {
+            Text("Use a Focus Timer")
+              .font(.system(size: 16, weight: .semibold))
+            Text("A gentle countdown for this habit. Optional.")
+              .font(.caption)
+              .foregroundStyle(.secondary)
+          }
+        }
+        .tint(effectiveColor)
+        .padding(16)
+        .proudlyGlass(cornerRadius: 16)
+
+        if focusTimerEnabled {
+          VStack(alignment: .leading, spacing: 10) {
+            Text("Duration")
+              .font(.caption.weight(.semibold))
+              .foregroundStyle(.secondary)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+              HStack(spacing: 10) {
+                ForEach(FocusTimerStore.durationOptions, id: \.self) { minutes in
+                  Button {
+                    focusDurationMinutes = minutes
+                    Haptics.selection()
+                  } label: {
+                    Text(durationLabel(minutes))
+                      .font(.system(size: 14, weight: .semibold))
+                      .padding(.horizontal, 14)
+                      .padding(.vertical, 9)
+                      .background(
+                        focusDurationMinutes == minutes
+                          ? effectiveColor : effectiveColor.opacity(0.14)
+                      )
+                      .foregroundStyle(focusDurationMinutes == minutes ? .white : .primary)
+                      .clipShape(Capsule())
+                  }
+                  .buttonStyle(.plain)
+                }
+              }
+            }
+          }
+          .padding(16)
+          .proudlyGlass(cornerRadius: 16)
+          .transition(.opacity.combined(with: .move(edge: .top)))
+        }
+      }
+    }
+    .animation(.spring(response: 0.35, dampingFraction: 0.8), value: focusTimerEnabled)
+  }
+
+  private func durationLabel(_ minutes: Int) -> String {
+    if minutes >= 60, minutes % 60 == 0 {
+      let hours = minutes / 60
+      return "\(hours)h"
+    }
+    return "\(minutes)m"
   }
 
   private func frequencyButton(value: Int) -> some View {
@@ -545,12 +636,9 @@ struct HabitFormView: View {
 
   private func reminderIcon(for mode: HabitReminderMode) -> String {
     switch mode {
-    case .none:
-      return "bell.slash"
-    case .basedOnTarget:
-      return "bell.badge"
-    case .customFirstTime:
-      return "clock"
+    case .none: return "bell.slash"
+    case .basedOnTarget: return "bell.badge"
+    case .customFirstTime: return "clock"
     }
   }
 
@@ -567,7 +655,7 @@ struct HabitFormView: View {
   }
 
   private func synchronizeCustomReminderTimes() {
-    let count = max(effectiveDailyTargetCount, 1)
+    let count = max(reminderCount, 1)
 
     if customReminderTimes.count > count {
       customReminderTimes = Array(customReminderTimes.prefix(count))
@@ -616,15 +704,14 @@ struct HabitFormView: View {
     return Calendar.current.date(byAdding: .hour, value: 1, to: anchorDate) ?? anchorDate
   }
 
-  private static func resolveCustomReminderDates(for habit: Habit?, dailyTargetCount: Int) -> [Date]
-  {
+  private static func resolveCustomReminderDates(for habit: Habit?, reminderCount: Int) -> [Date] {
     let reminderDates = (habit?.reminderTimes ?? []).map(NotificationManager.reminderDate(from:))
 
     guard !reminderDates.isEmpty else {
-      return defaultCustomReminderDates(for: dailyTargetCount)
+      return defaultCustomReminderDates(reminderCount: reminderCount)
     }
 
-    let targetCount = max(dailyTargetCount, 1)
+    let targetCount = max(reminderCount, 1)
     if reminderDates.count >= targetCount {
       return Array(reminderDates.prefix(targetCount))
     }
@@ -638,8 +725,8 @@ struct HabitFormView: View {
     return updatedDates
   }
 
-  private static func defaultCustomReminderDates(for dailyTargetCount: Int) -> [Date] {
-    let targetCount = max(dailyTargetCount, 1)
+  private static func defaultCustomReminderDates(reminderCount: Int) -> [Date] {
+    let targetCount = max(reminderCount, 1)
     let startDate = NotificationManager.reminderDate(from: "09:00")
 
     return (0..<targetCount).compactMap { index in
@@ -677,7 +764,9 @@ struct HabitFormView: View {
       dailyTargetCount: effectiveDailyTargetCount,
       completedCountToday: habit?.completedCountToday ?? 0,
       remindersEnabled: remindersEnabled,
-      reminderTimes: savedReminderTimes
+      reminderTimes: savedReminderTimes,
+      reminderCount: max(reminderCount, 1),
+      focusDurationMinutes: focusTimerEnabled ? max(focusDurationMinutes, 1) : nil
     )
 
     onSave(savedHabit)
@@ -687,8 +776,8 @@ struct HabitFormView: View {
 
   private static func resolveReminderMode(for habit: Habit?) -> HabitReminderMode {
     guard let habit, habit.remindersEnabled else { return .none }
-
-    let defaultTimes = NotificationManager.defaultReminderTimes(for: habit.dailyTargetCount)
+    let derivedCount = habit.reminderCount > 0 ? habit.reminderCount : habit.reminderTimes.count
+    let defaultTimes = NotificationManager.defaultReminderTimes(for: max(derivedCount, 1))
     return habit.reminderTimes == defaultTimes ? .basedOnTarget : .customFirstTime
   }
 

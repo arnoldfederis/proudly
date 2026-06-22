@@ -12,6 +12,7 @@ struct TodayView: View {
   @Environment(SubscriptionStore.self) private var subscriptionStore
   @Environment(HabitRepository.self) private var repository
   @Environment(AppNavigationStore.self) private var appNavigationStore
+  @Environment(\.scenePhase) private var scenePhase
   @State private var selectedHabit: Habit?
   @State private var isAddPresented: Bool = false
   @State private var isPaywallPresented: Bool = false
@@ -19,6 +20,8 @@ struct TodayView: View {
   @State private var displayedCompletedCount = 0
   @State private var isAwaitingCompletedCountSync = false
   @State private var togglingHabitIDs: Set<UUID> = []
+  @State private var currentDateKey: String = LocalDay.key()
+  @State private var midnightRefreshTask: Task<Void, Never>?
 
   private let freeHabitLimit = 3
 
@@ -84,7 +87,22 @@ struct TodayView: View {
     .onAppear {
       displayedCompletedCount = repositoryCompletedCount
       showsCelebrationCard = displayedCompletedCount > 0
+      handleLocalDayChangeIfNeeded()
+      scheduleMidnightRefresh()
       navigateToPendingHabitIfNeeded()
+    }
+    .onDisappear {
+      midnightRefreshTask?.cancel()
+      midnightRefreshTask = nil
+    }
+    .onChange(of: scenePhase) { _, phase in
+      guard phase == .active else {
+        midnightRefreshTask?.cancel()
+        midnightRefreshTask = nil
+        return
+      }
+      handleLocalDayChangeIfNeeded()
+      scheduleMidnightRefresh()
     }
     .onChange(of: completedCount) { _, newValue in
       withAnimation(.spring(response: 0.42, dampingFraction: 0.8)) {
@@ -187,6 +205,29 @@ struct TodayView: View {
       isPaywallPresented = true
     } else {
       isAddPresented = true
+    }
+  }
+
+  private func handleLocalDayChangeIfNeeded() {
+    let todayKey = LocalDay.key()
+    guard todayKey != currentDateKey else { return }
+    currentDateKey = todayKey
+    repository.refresh()
+    withAnimation(.spring(response: 0.32, dampingFraction: 0.78)) {
+      displayedCompletedCount = repositoryCompletedCount
+      showsCelebrationCard = displayedCompletedCount > 0
+      isAwaitingCompletedCountSync = false
+    }
+  }
+
+  private func scheduleMidnightRefresh() {
+    midnightRefreshTask?.cancel()
+    let interval = LocalDay.timeUntilNextMidnight() + 1
+    midnightRefreshTask = Task { @MainActor in
+      try? await Task.sleep(for: .seconds(interval))
+      guard !Task.isCancelled else { return }
+      handleLocalDayChangeIfNeeded()
+      scheduleMidnightRefresh()
     }
   }
 

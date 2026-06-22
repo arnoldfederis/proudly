@@ -35,6 +35,7 @@ struct SubscriptionManagementView: View {
       }
       .navigationTitle("Subscription")
       .navigationBarTitleDisplayMode(.large)
+      .toolbar(.hidden, for: .tabBar)
       .sheet(isPresented: $showPaywall) {
         ProudlyPlusView()
       }

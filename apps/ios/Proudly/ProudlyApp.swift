@@ -118,6 +118,8 @@ struct ProudlyApp: App {
   @State private var subscriptionStore: SubscriptionStore
   @State private var habitRepository: HabitRepository
   @State private var appNavigationStore = AppNavigationStore.shared
+  @State private var focusTimerStore = FocusTimerStore.shared
+  @Environment(\.scenePhase) private var scenePhase
 
   let sharedModelContainer: ModelContainer
 
@@ -146,8 +148,14 @@ struct ProudlyApp: App {
         .environment(subscriptionStore)
         .environment(habitRepository)
         .environment(appNavigationStore)
+        .environment(focusTimerStore)
     }
     .modelContainer(sharedModelContainer)
+    .onChange(of: scenePhase) { _, phase in
+      if phase == .active {
+        focusTimerStore.refresh()
+      }
+    }
   }
 }
 

@@ -13,6 +13,10 @@ import SwiftUI
 @MainActor
 @Observable
 final class HabitRepository {
+  /// Weak reference exposed for App Intents (Siri/Shortcuts) so they can
+  /// drive the same repository the UI uses. Wired up in the app's init.
+  static weak var sharedForIntents: HabitRepository?
+
   private let modelContext: ModelContext
   private let notificationManager: NotificationManager
   private let toastCenter: ToastCenter?
@@ -34,6 +38,7 @@ final class HabitRepository {
     self.toastCenter = toastCenter
     refresh()
     seedIfNeeded()
+    Self.sharedForIntents = self
   }
 
   // MARK: - Read
@@ -113,7 +118,9 @@ final class HabitRepository {
       remindersEnabled: habit.remindersEnabled && !habit.reminderTimes.isEmpty,
       reminderTimes: reminderString,
       reminderHour: hour,
-      reminderMinute: minute
+      reminderMinute: minute,
+      reminderCount: max(habit.reminderCount, 1),
+      focusDurationMinutes: habit.focusDurationMinutes
     )
     modelContext.insert(persistentHabit)
     save()
@@ -145,6 +152,8 @@ final class HabitRepository {
     persistentHabit.reminderTimes = reminderString
     persistentHabit.reminderHour = hour
     persistentHabit.reminderMinute = minute
+    persistentHabit.reminderCount = max(habit.reminderCount, 1)
+    persistentHabit.focusDurationMinutes = habit.focusDurationMinutes
     persistentHabit.updatedAt = .now
 
     save()
@@ -155,7 +164,7 @@ final class HabitRepository {
 
   func incrementCompletion(for habit: Habit) {
     guard let persistentHabit = fetchPersistent(id: habit.id) else { return }
-    let today = Self.dateKey(for: .now)
+    let today = LocalDay.key()
     let target = max(persistentHabit.dailyTargetCount, 1)
 
     if let existing = completion(for: persistentHabit, dateKey: today) {
@@ -183,7 +192,7 @@ final class HabitRepository {
 
   func decrementCompletion(for habit: Habit) {
     guard let persistentHabit = fetchPersistent(id: habit.id) else { return }
-    let today = Self.dateKey(for: .now)
+    let today = LocalDay.key()
     guard let existing = completion(for: persistentHabit, dateKey: today) else { return }
 
     if existing.count > 1 {
@@ -205,7 +214,7 @@ final class HabitRepository {
 
   func toggleCompletion(for habit: Habit) {
     let target = max(habit.dailyTargetCount, 1)
-    let today = Self.dateKey(for: .now)
+    let today = LocalDay.key()
     let count = completedCount(for: habit, on: today)
 
     if target == 1 {
@@ -236,13 +245,12 @@ final class HabitRepository {
   // MARK: - Proud Moments
 
   var proudMoments: [ProudMoment] {
-    let formatter = Self.dateFormatter
     var moments: [ProudMoment] = []
 
     for habit in activeHabits {
       let sorted = habit.completedDates
         .compactMap { key -> (String, Date)? in
-          guard let date = formatter.date(from: key) else { return nil }
+          guard let date = LocalDay.date(fromKey: key) else { return nil }
           return (key, date)
         }
         .sorted { $0.1 > $1.1 }
@@ -279,17 +287,16 @@ final class HabitRepository {
   // MARK: - Streak helpers
 
   static func currentStreak(completedKeys: Set<String>) -> Int {
-    let calendar = Calendar.current
-    let formatter = Self.dateFormatter
-    var date = Date.now
+    let calendar = LocalDay.calendar
+    var date = LocalDay.startOfDay()
     var streak = 0
 
-    if !completedKeys.contains(formatter.string(from: date)) {
+    if !completedKeys.contains(LocalDay.key(for: date)) {
       guard let yesterday = calendar.date(byAdding: .day, value: -1, to: date) else { return 0 }
       date = yesterday
     }
 
-    while completedKeys.contains(formatter.string(from: date)) {
+    while completedKeys.contains(LocalDay.key(for: date)) {
       streak += 1
       guard let previous = calendar.date(byAdding: .day, value: -1, to: date) else { break }
       date = previous
@@ -300,9 +307,8 @@ final class HabitRepository {
 
   static func bestStreak(completedKeys: Set<String>) -> Int {
     guard !completedKeys.isEmpty else { return 0 }
-    let calendar = Calendar.current
-    let formatter = Self.dateFormatter
-    let sorted = completedKeys.compactMap { formatter.date(from: $0) }.sorted()
+    let calendar = LocalDay.calendar
+    let sorted = completedKeys.compactMap { LocalDay.date(fromKey: $0) }.sorted()
     guard sorted.count > 1 else { return 1 }
 
     var best = 1
@@ -323,7 +329,7 @@ final class HabitRepository {
   }
 
   static func dateKey(for date: Date) -> String {
-    dateFormatter.string(from: date)
+    LocalDay.key(for: date)
   }
 
   // MARK: - Private helpers
@@ -346,6 +352,8 @@ final class HabitRepository {
       fallbackMinute: persistentHabit.reminderMinute
     )
 
+    let derivedReminderCount = max(persistentHabit.reminderCount ?? reminders.count, 1)
+
     return Habit(
       id: persistentHabit.id,
       name: persistentHabit.name,
@@ -357,9 +365,11 @@ final class HabitRepository {
       completionCountsByDate: countsByDate,
       note: persistentHabit.note,
       dailyTargetCount: target,
-      completedCountToday: countsByDate[Self.dateKey(for: .now)] ?? 0,
+      completedCountToday: countsByDate[LocalDay.key()] ?? 0,
       remindersEnabled: persistentHabit.remindersEnabled || !reminders.isEmpty,
-      reminderTimes: reminders
+      reminderTimes: reminders,
+      reminderCount: derivedReminderCount,
+      focusDurationMinutes: persistentHabit.focusDurationMinutes
     )
   }
 
@@ -430,12 +440,6 @@ final class HabitRepository {
 
   private static let onboardingKey = "hasCompletedOnboarding"
   private static let seededKey = "hasSeededDefaultHabits"
-
-  private static let dateFormatter: DateFormatter = {
-    let formatter = DateFormatter()
-    formatter.dateFormat = "yyyy-MM-dd"
-    return formatter
-  }()
 }
 
 extension HabitRepository {

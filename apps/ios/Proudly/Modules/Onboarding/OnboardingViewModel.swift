@@ -244,7 +244,9 @@ final class OnboardingViewModel {
       dailyTargetCount: dailyTargetCount,
       completedCountToday: 0,
       remindersEnabled: remindersEnabled && remindersAuthorized,
-      reminderTimes: remindersAuthorized ? resolvedReminderTimes : []
+      reminderTimes: remindersAuthorized ? resolvedReminderTimes : [],
+      reminderCount: max(resolvedReminderTimes.count, 1),
+      focusDurationMinutes: nil
     )
 
     repository.addHabit(habit, markSeeded: true, showsToast: false)

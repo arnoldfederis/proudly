@@ -23,6 +23,24 @@ const carouselItems: CarouselFeatureItem[] = [
       "Proudly Proud Moments screen showing completed habits and small wins history",
   },
   {
+    altName: "Focus Timer",
+    eyebrow: "Focus",
+    heading: "Stay with one small win.",
+    body: "Start a gentle countdown for timed habits like reading, studying, stretching, or watching a lesson.",
+    imageSrc: "/assets/device-12.png",
+    imageAlt:
+      "Proudly Focus Timer screen showing a countdown for a timed habit",
+  },
+  {
+    altName: "Siri Shortcuts",
+    eyebrow: "Shortcuts",
+    heading: "Start habits faster with Siri.",
+    body: "Use quick actions to open Today, start a Focus Timer, or complete a habit with your voice.",
+    imageSrc: "/assets/device-13.png",
+    imageAlt:
+      "Proudly shortcuts screen showing Siri actions for opening Today, starting Focus Timer, and completing habits",
+  },
+  {
     altName: "Themes",
     eyebrow: "Personal touch",
     heading: "Make Proudly feel like yours.",

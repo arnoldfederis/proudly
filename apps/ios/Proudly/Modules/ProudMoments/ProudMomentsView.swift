@@ -58,6 +58,7 @@ struct ProudMomentsView: View {
     }
     .navigationTitle("Proud Moments")
     .navigationBarTitleDisplayMode(.large)
+    .toolbar(.hidden, for: .tabBar)
     .tint(theme.activeTheme.accentColor)
   }
 

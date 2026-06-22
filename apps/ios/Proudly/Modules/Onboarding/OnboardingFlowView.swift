@@ -215,10 +215,12 @@ struct OnboardingFlowView: View {
             VStack(alignment: .leading, spacing: 4) {
               Text("Custom")
                 .font(.system(size: 16, weight: .semibold))
-              Text("\(viewModel.dailyTargetCount) times each day")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .contentTransition(.numericText())
+              Text(
+                "\(viewModel.dailyTargetCount) \(viewModel.dailyTargetCount == 1 ? "time" : "times") each day"
+              )
+              .font(.caption)
+              .foregroundStyle(.secondary)
+              .contentTransition(.numericText())
             }
             Spacer()
             Stepper("", value: $viewModel.customFrequency, in: 4...8)
