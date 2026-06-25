@@ -21,8 +21,8 @@ struct ProfileView: View {
   @State private var navigateToReminders = false
   @State private var navigateToSiri = false
 
-  private let termsURL = URL(string: "https://proudly.app/terms")
-  private let privacyURL = URL(string: "https://proudly.app/privacy")
+  private let termsURL = URL(string: "https://proudlyhabit.com/terms")
+  private let privacyURL = URL(string: "https://proudlyhabit.com/privacy")
 
   var body: some View {
     NavigationStack {

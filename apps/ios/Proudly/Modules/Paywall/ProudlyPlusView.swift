@@ -46,8 +46,8 @@ struct ProudlyPlusView: View {
     ),
   ]
 
-  private let privacyPolicyURL = URL(string: "https://proudly.app/privacy")
-  private let termsOfUseURL = URL(string: "https://proudly.app/terms")
+  private let privacyPolicyURL = URL(string: "https://proudlyhabit.com/privacy")
+  private let termsOfUseURL = URL(string: "https://proudlyhabit.com/terms")
 
   var body: some View {
     NavigationStack {
@@ -388,14 +388,10 @@ struct ProudlyPlusView: View {
   private var footerSection: some View {
     VStack(spacing: 8) {
       HStack(spacing: 16) {
-        if let termsOfUseURL {
-          Link("Terms", destination: termsOfUseURL)
+        Group {
+          Link("Terms", destination: termsOfUseURL!)
+          Link("Privacy", destination: privacyPolicyURL!)
         }
-
-        if let privacyPolicyURL {
-          Link("Privacy", destination: privacyPolicyURL)
-        }
-
         Button {
           Task {
             let result = await subscriptionStore.restorePurchases()
