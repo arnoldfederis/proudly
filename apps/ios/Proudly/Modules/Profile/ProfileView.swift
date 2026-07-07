@@ -8,18 +8,20 @@
 import SwiftUI
 
 struct ProfileView: View {
+  @AppStorage("userName") private var userName = ""
   @Environment(ThemeViewModel.self) private var theme
   @Environment(SubscriptionStore.self) private var subscriptionStore
   @Environment(HabitRepository.self) private var repository
   @Environment(ToastCenter.self) private var toastCenter
+  @Environment(CloudKitSyncMonitor.self) private var cloudKitSyncMonitor
   @Environment(\.openURL) private var openURL
   @State private var showPaywall = false
-  @State private var showICloudAlert = false
   @State private var showThemeView = false
   @State private var showSubscriptionManagement = false
   @State private var navigateToProudMoments = false
   @State private var navigateToReminders = false
   @State private var navigateToSiri = false
+  @State private var navigateToICloud = false
 
   private let termsURL = URL(string: "https://proudlyhabit.com/terms")
   private let privacyURL = URL(string: "https://proudlyhabit.com/privacy")
@@ -63,6 +65,9 @@ struct ProfileView: View {
       .navigationDestination(isPresented: $navigateToSiri) {
         SiriShortcutsView()
       }
+      .navigationDestination(isPresented: $navigateToICloud) {
+        ICloudSyncView()
+      }
     }
   }
 
@@ -73,13 +78,13 @@ struct ProfileView: View {
           Circle()
             .fill(theme.activeTheme.accentGradient)
             .frame(width: 60, height: 60)
-          Text("A")
+          Text(profileInitial)
             .font(.system(size: 26, weight: .bold))
             .foregroundStyle(.white)
         }
 
         VStack(alignment: .leading, spacing: 4) {
-          Text("Arnolfo")
+          Text(profileName)
             .font(.system(size: 18, weight: .bold))
           Text(profileSummary)
             .font(.caption)
@@ -134,23 +139,40 @@ struct ProfileView: View {
     .proudlyGlass()
   }
 
+  private var profileName: String {
+    let trimmedName = userName.trimmingCharacters(in: .whitespacesAndNewlines)
+    return trimmedName.isEmpty ? "Proudly User" : trimmedName
+  }
+
+  private var profileInitial: String {
+    String(profileName.prefix(1)).uppercased()
+  }
+
   private var settingsSection: some View {
     VStack(spacing: 0) {
       Button {
-        showICloudAlert = true
+        if subscriptionStore.hasProudlyPlus {
+          navigateToICloud = true
+        } else {
+          showPaywall = true
+        }
       } label: {
         ProfileRow(icon: "icloud.fill", label: "iCloud Sync", color: ProudlyTheme.blue) {
-          Text("Coming soon")
-            .font(.subheadline)
-            .foregroundStyle(.secondary)
+          HStack(spacing: 6) {
+            if subscriptionStore.hasProudlyPlus {
+              Text(iCloudStatusSummary)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+              Image(systemName: "chevron.right")
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
+            } else {
+              PlusBadge()
+            }
+          }
         }
       }
       .buttonStyle(.plain)
-      .alert("Coming soon", isPresented: $showICloudAlert) {
-        Button("OK") {}
-      } message: {
-        Text("iCloud sync is planned for a future update.")
-      }
 
       Divider().padding(.leading, 56).opacity(0.4)
 
@@ -345,6 +367,18 @@ struct ProfileView: View {
     let count = repository.activeHabits.filter(\.remindersEnabled).count
     return count == 0 ? "Off" : count == 1 ? "1 active" : "\(count) active"
   }
+
+  private var iCloudStatusSummary: String {
+    switch cloudKitSyncMonitor.status {
+    case .syncing: "Syncing"
+    case .idle: "On"
+    case .signedOut: "Sign in"
+    case .unavailable: "Unavailable"
+    case .localOnly: "Local only"
+    case .error: "Error"
+    case .unknown: "Checking"
+    }
+  }
 }
 
 struct PlusBadge: View {
@@ -397,4 +431,5 @@ struct ProfileRow<Trailing: View>: View {
     .environment(SubscriptionStore())
     .environment(HabitRepository.preview)
     .environment(ToastCenter())
+    .environment(CloudKitSyncMonitor())
 }

@@ -38,7 +38,7 @@ const SHOWCASES = [
     id: "plus",
     eyebrow: "Proudly Plus",
     headline: "More room for your small wins.",
-    body: "Unlock unlimited habits, custom themes, Proud Moments history, and deeper progress insights when you are ready to grow.",
+    body: "Unlock unlimited habits, iCloud sync across your Apple devices, monthly history, custom themes, Proud Moments, and deeper insights — momentum trends, weekday patterns, a 30-day consistency score, and a 6-month heatmap.",
     phoneFirst: true,
     muted: true,
     src: "/assets/device-5.png",

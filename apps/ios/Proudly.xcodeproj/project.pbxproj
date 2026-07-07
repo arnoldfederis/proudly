@@ -7,13 +7,17 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		240B7F392FF8F49B0036C72B /* Proudly.storekit in Resources */ = {isa = PBXBuildFile; fileRef = 240B7EFA2FF8F49B0036C72B /* Proudly.storekit */; };
+		240B7F702FF8F6F80036C72B /* StoreKitTestCertificate.cer in Resources */ = {isa = PBXBuildFile; fileRef = 240B7F6F2FF8F6F80036C72B /* StoreKitTestCertificate.cer */; };
 		24D839D52FDCB95E0075F138 /* ReceiptParser in Frameworks */ = {isa = PBXBuildFile; productRef = 24D839D42FDCB95E0075F138 /* ReceiptParser */; };
 		24D839D72FDCB95E0075F138 /* RevenueCat in Frameworks */ = {isa = PBXBuildFile; productRef = 24D839D62FDCB95E0075F138 /* RevenueCat */; };
 		24D839D92FDCB95E0075F138 /* RevenueCatUI in Frameworks */ = {isa = PBXBuildFile; productRef = 24D839D82FDCB95E0075F138 /* RevenueCatUI */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		24A1FC6E2FD7588100102895 /* Proudly.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Proudly.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		240B7EE52FF8F49B0036C72B /* Proudly.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Proudly.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		240B7EFA2FF8F49B0036C72B /* Proudly.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; path = Proudly.storekit; sourceTree = "<group>"; };
+		240B7F6F2FF8F6F80036C72B /* StoreKitTestCertificate.cer */ = {isa = PBXFileReference; lastKnownFileType = file; path = StoreKitTestCertificate.cer; sourceTree = "<group>"; };
 		9B6A5B48DB6F4A558CB4EC7B /* Proudly/Configurations/RevenueCat.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Proudly/Configurations/RevenueCat.xcconfig; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
@@ -67,17 +71,11 @@
 			isa = PBXGroup;
 			children = (
 				24A1FC702FD7588100102895 /* Proudly */,
-				24A1FC6F2FD7588100102895 /* Products */,
 				244B34E82FE6373800B3597D /* Recovered References */,
+				240B7EE52FF8F49B0036C72B /* Proudly.app */,
+				240B7EFA2FF8F49B0036C72B /* Proudly.storekit */,
+				240B7F6F2FF8F6F80036C72B /* StoreKitTestCertificate.cer */,
 			);
-			sourceTree = "<group>";
-		};
-		24A1FC6F2FD7588100102895 /* Products */ = {
-			isa = PBXGroup;
-			children = (
-				24A1FC6E2FD7588100102895 /* Proudly.app */,
-			);
-			name = Products;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -105,7 +103,7 @@
 				24D839D82FDCB95E0075F138 /* RevenueCatUI */,
 			);
 			productName = Proudly;
-			productReference = 24A1FC6E2FD7588100102895 /* Proudly.app */;
+			productReference = 240B7EE52FF8F49B0036C72B /* Proudly.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -136,7 +134,7 @@
 				24D839D32FDCB95E0075F138 /* XCRemoteSwiftPackageReference "purchases-ios-spm" */,
 			);
 			preferredProjectObjectVersion = 77;
-			productRefGroup = 24A1FC6F2FD7588100102895 /* Products */;
+			productRefGroup = 24A1FC652FD7588100102895;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -150,6 +148,8 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				240B7F392FF8F49B0036C72B /* Proudly.storekit in Resources */,
+				240B7F702FF8F6F80036C72B /* StoreKitTestCertificate.cer in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -180,6 +180,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Proudly/Info.plist;
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
 				INFOPLIST_KEY_RevenueCatAPIKey = "$(REVENUECAT_API_KEY)";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -223,6 +224,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Proudly/Info.plist;
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
 				INFOPLIST_KEY_RevenueCatAPIKey = "$(REVENUECAT_API_KEY)";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;

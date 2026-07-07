@@ -14,6 +14,24 @@ type CarouselFeatureItem = {
 
 const carouselItems: CarouselFeatureItem[] = [
   {
+    altName: "Monthly History",
+    eyebrow: "Full month view",
+    heading: "See your whole month at a glance.",
+    body: "A gentle monthly calendar shows the days you showed up, so your progress is easy to feel — not just count.",
+    imageSrc: "/assets/device-14.png",
+    imageAlt:
+      "Proudly monthly history calendar showing completed days for a habit across the month",
+  },
+  {
+    altName: "iCloud Sync",
+    eyebrow: "Across your devices",
+    heading: "Your habits, on every Apple device.",
+    body: "Optional iCloud sync keeps habits, completions, and reminders consistent across your iPhone. Your data stays in your private iCloud account.",
+    imageSrc: "/assets/device-15.png",
+    imageAlt:
+      "Proudly iCloud sync settings screen showing habits syncing across Apple devices",
+  },
+  {
     altName: "Proud Moments",
     eyebrow: "Completed wins",
     heading: "Look back at what you’ve already done.",

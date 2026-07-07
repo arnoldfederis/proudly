@@ -25,7 +25,7 @@ const FAQS = [
   },
   {
     q: "Is iCloud sync included?",
-    a: "Not in v1. It is planned for a future update.",
+    a: "Yes. Proudly Plus subscribers can enable optional iCloud sync to keep habits consistent across their Apple devices. Sync uses Apple iCloud/CloudKit; Proudly still works locally when iCloud is unavailable.",
   },
 ];
 

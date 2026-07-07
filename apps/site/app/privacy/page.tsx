@@ -47,7 +47,7 @@ function BulletList({ items }: { items: string[] }) {
 export default function PrivacyPage() {
   return (
     <LegalPageShell
-      effectiveDate="Effective date: June 19, 2026"
+      effectiveDate="Effective date: July 3, 2026"
       intro="This Privacy Policy explains how Proudly handles habit data, reminders, subscription status, and support requests."
       title="Privacy Policy"
     >
@@ -89,6 +89,7 @@ export default function PrivacyPage() {
             "Show your habits and daily progress",
             "Save your preferences and settings",
             "Schedule local reminders",
+            "Sync habit data across your Apple devices when iCloud sync is enabled",
             "Manage access to Proudly Plus features",
             "Restore purchases and validate active subscriptions",
             "Improve and maintain the app",
@@ -99,9 +100,22 @@ export default function PrivacyPage() {
 
       <Section title="Local Storage">
         <Body>
-          In v1, Proudly stores all habit data locally on your device. iCloud
-          sync is not included in v1. If you delete the app, your local habit
-          data will be removed from your device.
+          By default, Proudly stores all habit data locally on your device. If
+          you delete the app, your local habit data will be removed from your
+          device.
+        </Body>
+      </Section>
+
+      <Section title="iCloud Sync">
+        <Body>
+          Proudly Plus subscribers can enable optional iCloud sync to keep habit
+          data consistent across their Apple devices. When iCloud sync is
+          enabled, habit data is stored in the user's private iCloud account
+          using Apple CloudKit and handled by Apple according to Apple's privacy
+          policy. Proudly does not operate a custom server for habit sync and
+          cannot access the contents of your private iCloud database. If iCloud
+          is unavailable or the user is signed out, Proudly continues to work
+          locally on the device.
         </Body>
       </Section>
 
@@ -148,7 +162,11 @@ export default function PrivacyPage() {
       <Section title="Data Deletion">
         <Body>
           You can delete individual habits inside the Proudly app. Deleting the
-          app from your device removes all locally stored Proudly data.
+          app from your device removes all locally stored Proudly data. If
+          iCloud sync is enabled, habit records also live in your private iCloud
+          account; you can remove them by disabling iCloud sync in Settings,
+          deleting the Proudly data from iCloud in iOS Settings, or signing out
+          of iCloud on your device.
         </Body>
       </Section>
 

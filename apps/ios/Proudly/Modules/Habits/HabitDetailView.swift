@@ -11,6 +11,7 @@ struct HabitDetailView: View {
   @Environment(\.dismiss) private var dismiss
   @Environment(ThemeViewModel.self) private var theme
   @Environment(HabitRepository.self) private var repository
+  @Environment(SubscriptionStore.self) private var subscriptionStore
 
   @Environment(FocusTimerStore.self) private var focusTimerStore
   @State private var habit: Habit
@@ -19,6 +20,8 @@ struct HabitDetailView: View {
   @State private var isReplaceTimerConfirmationPresented = false
   @State private var animateContent = false
   @State private var hasOfferedCompletion = false
+  @State private var displayedMonth: Date = Calendar.current.startOfMonth(for: .now)
+  @State private var showPaywall = false
 
   let onSave: (Habit) -> Void
 
@@ -103,6 +106,9 @@ struct HabitDetailView: View {
         onSave(updatedHabit)
         isEditPresented = false
       }
+    }
+    .sheet(isPresented: $showPaywall) {
+      ProudlyPlusView()
     }
     .onAppear {
       withAnimation(.spring(response: 0.5, dampingFraction: 0.82)) {
@@ -214,26 +220,288 @@ struct HabitDetailView: View {
   }
 
   private var monthlyHistoryCard: some View {
-    HStack(spacing: 14) {
+    Group {
+      if subscriptionStore.hasProudlyPlus {
+        VStack(alignment: .leading, spacing: 16) {
+          monthHeader
+          weekdayHeader
+          monthGrid
+          monthlySummary
+        }
+        .padding(20)
+        .proudlyGlass()
+      } else {
+        lockedMonthlyHistoryCard
+      }
+    }
+  }
+
+  private var lockedMonthlyHistoryCard: some View {
+    Button {
+      Haptics.selection()
+      showPaywall = true
+    } label: {
+      VStack(alignment: .leading, spacing: 14) {
+        HStack(spacing: 12) {
+          ZStack {
+            Circle()
+              .fill(habit.color.opacity(0.15))
+              .frame(width: 34, height: 34)
+            Image(systemName: "calendar")
+              .font(.system(size: 15, weight: .semibold))
+              .foregroundStyle(habit.color)
+          }
+          VStack(alignment: .leading, spacing: 2) {
+            Text("Monthly History")
+              .font(.system(size: 15, weight: .semibold))
+              .foregroundStyle(.primary)
+            Text("See your full month at a glance.")
+              .font(.caption)
+              .foregroundStyle(.secondary)
+          }
+          Spacer()
+          PlusBadge()
+        }
+
+        ZStack {
+          VStack(alignment: .leading, spacing: 12) {
+            weekdayHeader
+            monthGrid
+          }
+          .blur(radius: 6)
+          .allowsHitTesting(false)
+          .frame(maxHeight: 200, alignment: .top)
+          .clipped()
+
+          VStack(spacing: 8) {
+            Image(systemName: "lock.fill")
+              .font(.system(size: 20, weight: .semibold))
+              .foregroundStyle(habit.color)
+            Text("Unlock with Proudly Plus")
+              .font(.system(size: 14, weight: .semibold))
+              .foregroundStyle(.primary)
+          }
+          .padding(.horizontal, 16)
+          .padding(.top, 10)
+          .padding(.bottom, 18)
+          .background(.ultraThinMaterial, in: Capsule())
+        }
+      }
+      .padding(20)
+      .proudlyGlass()
+    }
+    .buttonStyle(.plain)
+  }
+
+  private var monthHeader: some View {
+    HStack(spacing: 12) {
       ZStack {
         Circle()
           .fill(habit.color.opacity(0.15))
-          .frame(width: 42, height: 42)
+          .frame(width: 34, height: 34)
         Image(systemName: "calendar")
+          .font(.system(size: 15, weight: .semibold))
           .foregroundStyle(habit.color)
       }
-      VStack(alignment: .leading, spacing: 3) {
+
+      VStack(alignment: .leading, spacing: 2) {
         Text("Monthly History")
           .font(.system(size: 15, weight: .semibold))
           .foregroundStyle(.primary)
-        Text("Full calendar view coming soon.")
+        Text(monthTitle)
           .font(.caption)
           .foregroundStyle(.secondary)
       }
+
       Spacer()
+
+      Button {
+        shiftMonth(by: -1)
+      } label: {
+        Image(systemName: "chevron.left")
+          .font(.system(size: 13, weight: .bold))
+          .foregroundStyle(habit.color)
+          .frame(width: 32, height: 32)
+          .background(habit.color.opacity(0.12), in: Circle())
+      }
+      .buttonStyle(.plain)
+
+      Button {
+        shiftMonth(by: 1)
+      } label: {
+        Image(systemName: "chevron.right")
+          .font(.system(size: 13, weight: .bold))
+          .foregroundStyle(canGoNextMonth ? habit.color : .secondary)
+          .frame(width: 32, height: 32)
+          .background(
+            (canGoNextMonth ? habit.color : Color.secondary).opacity(0.12), in: Circle())
+      }
+      .buttonStyle(.plain)
+      .disabled(!canGoNextMonth)
     }
-    .padding(16)
-    .proudlyGlass(cornerRadius: 18)
+  }
+
+  private var weekdayHeader: some View {
+    HStack(spacing: 0) {
+      ForEach(orderedWeekdaySymbols, id: \.self) { symbol in
+        Text(symbol)
+          .font(.caption2.weight(.semibold))
+          .foregroundStyle(.secondary)
+          .frame(maxWidth: .infinity)
+      }
+    }
+  }
+
+  private var monthGrid: some View {
+    let columns = Array(repeating: GridItem(.flexible(), spacing: 6), count: 7)
+    return LazyVGrid(columns: columns, spacing: 6) {
+      ForEach(monthCells, id: \.self) { cell in
+        monthCellView(for: cell)
+      }
+    }
+  }
+
+  private func monthCellView(for cell: MonthCell) -> some View {
+    Group {
+      switch cell {
+      case .empty:
+        Color.clear.frame(height: 40)
+      case .day(let date, let dateKey, let isFuture):
+        let count = habit.completionCountsByDate[dateKey] ?? 0
+        let target = max(habit.dailyTargetCount, 1)
+        let ratio = min(Double(count) / Double(target), 1)
+        let isToday = Calendar.current.isDateInToday(date)
+        let dayNumber = Calendar.current.component(.day, from: date)
+
+        ZStack {
+          RoundedRectangle(cornerRadius: 10, style: .continuous)
+            .fill(habit.color.opacity(ratio == 0 ? 0.06 : 0.15 + ratio * 0.55))
+          if isToday {
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+              .stroke(habit.color, lineWidth: 1.5)
+          }
+          VStack(spacing: 2) {
+            Text("\(dayNumber)")
+              .font(.system(size: 13, weight: ratio >= 1 ? .bold : .medium))
+              .foregroundStyle(
+                isFuture
+                  ? .secondary
+                  : (ratio >= 0.5 ? Color.white : Color.primary))
+            if count > 0 && target > 1 {
+              Text("\(count)/\(target)")
+                .font(.system(size: 8, weight: .semibold))
+                .foregroundStyle(ratio >= 0.5 ? Color.white.opacity(0.9) : .secondary)
+            }
+          }
+        }
+        .frame(height: 40)
+        .opacity(isFuture ? 0.4 : 1)
+      }
+    }
+  }
+
+  private var monthlySummary: some View {
+    let stats = monthStats
+    return HStack(spacing: 20) {
+      summaryPill(value: "\(stats.completedDays)", label: "days done")
+      summaryPill(value: "\(stats.totalCheckIns)", label: "check-ins")
+      summaryPill(value: "\(stats.completionRate)%", label: "of month")
+    }
+    .frame(maxWidth: .infinity)
+    .padding(.top, 4)
+  }
+
+  private func summaryPill(value: String, label: String) -> some View {
+    VStack(spacing: 2) {
+      Text(value)
+        .font(.system(size: 16, weight: .bold))
+        .foregroundStyle(habit.color)
+      Text(label)
+        .font(.caption2)
+        .foregroundStyle(.secondary)
+    }
+    .frame(maxWidth: .infinity)
+  }
+
+  private enum MonthCell: Hashable {
+    case empty(Int)
+    case day(Date, String, Bool)
+  }
+
+  private var monthCells: [MonthCell] {
+    let calendar = Calendar.current
+    guard
+      let range = calendar.range(of: .day, in: .month, for: displayedMonth),
+      let firstDay = calendar.date(
+        from: calendar.dateComponents([.year, .month], from: displayedMonth))
+    else { return [] }
+
+    let weekday = calendar.component(.weekday, from: firstDay)
+    let leadingBlanks = (weekday - calendar.firstWeekday + 7) % 7
+    let today = calendar.startOfDay(for: .now)
+
+    var cells: [MonthCell] = (0..<leadingBlanks).map { MonthCell.empty($0) }
+    for offset in 0..<range.count {
+      guard let date = calendar.date(byAdding: .day, value: offset, to: firstDay) else { continue }
+      let dateKey = HabitRepository.dateKey(for: date)
+      let isFuture = calendar.startOfDay(for: date) > today
+      cells.append(.day(date, dateKey, isFuture))
+    }
+    return cells
+  }
+
+  private var orderedWeekdaySymbols: [String] {
+    let calendar = Calendar.current
+    let symbols = calendar.veryShortStandaloneWeekdaySymbols
+    let start = calendar.firstWeekday - 1
+    return Array(symbols[start...] + symbols[..<start])
+  }
+
+  private var monthTitle: String {
+    let formatter = DateFormatter()
+    formatter.setLocalizedDateFormatFromTemplate("MMMM y")
+    return formatter.string(from: displayedMonth)
+  }
+
+  private var canGoNextMonth: Bool {
+    let calendar = Calendar.current
+    let currentMonthStart = calendar.startOfMonth(for: .now)
+    return displayedMonth < currentMonthStart
+  }
+
+  private func shiftMonth(by delta: Int) {
+    let calendar = Calendar.current
+    guard let next = calendar.date(byAdding: .month, value: delta, to: displayedMonth) else {
+      return
+    }
+    if delta > 0, calendar.startOfMonth(for: next) > calendar.startOfMonth(for: .now) {
+      return
+    }
+    Haptics.selection()
+    displayedMonth = calendar.startOfMonth(for: next)
+  }
+
+  private struct MonthStats {
+    let completedDays: Int
+    let totalCheckIns: Int
+    let completionRate: Int
+  }
+
+  private var monthStats: MonthStats {
+    let target = max(habit.dailyTargetCount, 1)
+    var completedDays = 0
+    var totalCheckIns = 0
+    var dayCount = 0
+    for cell in monthCells {
+      guard case .day(_, let dateKey, let isFuture) = cell, !isFuture else { continue }
+      dayCount += 1
+      let count = habit.completionCountsByDate[dateKey] ?? 0
+      totalCheckIns += count
+      if count >= target { completedDays += 1 }
+    }
+    let rate = dayCount == 0 ? 0 : Int(Double(completedDays) / Double(dayCount) * 100)
+    return MonthStats(
+      completedDays: completedDays, totalCheckIns: totalCheckIns, completionRate: rate)
   }
 
   private var completionButtons: some View {
@@ -558,4 +826,10 @@ struct StatCard: View {
   .environment(SubscriptionStore())
   .environment(HabitRepository.preview)
   .environment(FocusTimerStore.shared)
+}
+
+extension Calendar {
+  fileprivate func startOfMonth(for date: Date) -> Date {
+    self.date(from: dateComponents([.year, .month], from: date)) ?? startOfDay(for: date)
+  }
 }

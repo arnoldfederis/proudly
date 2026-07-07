@@ -10,12 +10,12 @@ import SwiftData
 
 @Model
 final class PersistentHabitCompletion {
-  var id: UUID
-  var habitId: UUID
+  var id: UUID = UUID()
+  var habitId: UUID = UUID()
   /// Format: "yyyy-MM-dd". Repository keeps at most one row per habit per date.
-  var dateKey: String
-  var count: Int
-  var completedAt: Date
+  var dateKey: String = ""
+  var count: Int = 1
+  var completedAt: Date = Date.now
   var habit: PersistentHabit?
 
   init(habitId: UUID, dateKey: String, count: Int = 1, completedAt: Date = .now) {

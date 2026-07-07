@@ -44,6 +44,18 @@ struct ProudlyPlusView: View {
       description: "Understand your real habit progress without pressure.",
       color: ProudlyTheme.mint
     ),
+    .init(
+      icon: "calendar",
+      title: "Monthly history",
+      description: "See your full month at a glance with completion trends.",
+      color: ProudlyTheme.mint
+    ),
+    .init(
+      icon: "icloud.fill",
+      title: "iCloud sync",
+      description: "Keep your habits in sync across your Apple devices.",
+      color: ProudlyTheme.blue
+    ),
   ]
 
   private let privacyPolicyURL = URL(string: "https://proudlyhabit.com/privacy")

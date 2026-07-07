@@ -48,7 +48,7 @@ final class SubscriptionStore {
   }
 
   var hasProudlyPlus: Bool {
-    customerInfo?.entitlements[RevenueCatConfig.proudlyPlusEntitlementID]?.isActive == true
+    hasEntitlement(in: customerInfo)
   }
 
   var availablePackages: [Package] {
@@ -78,8 +78,16 @@ final class SubscriptionStore {
       Purchases.logLevel = .info
     #endif
 
+    let storeKitVersion: StoreKitVersion = {
+      #if targetEnvironment(simulator)
+        return .storeKit1
+      #else
+        return .storeKit2
+      #endif
+    }()
+
     let configuration = Configuration.Builder(withAPIKey: RevenueCatConfig.apiKey)
-      .with(storeKitVersion: StoreKitVersion.storeKit2)
+      .with(storeKitVersion: storeKitVersion)
       .build()
 
     Purchases.configure(with: configuration)
@@ -146,6 +154,10 @@ final class SubscriptionStore {
       customerInfo = updatedCustomerInfo
       return hasProudlyPlus ? .unlocked : .notUnlocked
     } catch {
+      if let recoveredResult = await recoverPurchaseResult(from: error) {
+        return recoveredResult
+      }
+
       presentError(
         title: "Purchase failed",
         error: error
@@ -165,6 +177,10 @@ final class SubscriptionStore {
       customerInfo = try await Purchases.shared.restorePurchases()
       return hasProudlyPlus ? .restoredPlus : .noActiveSubscription
     } catch {
+      if let recoveredResult = await recoverRestoreResult(from: error) {
+        return recoveredResult
+      }
+
       presentError(
         title: "Restore failed",
         error: error
@@ -202,6 +218,102 @@ final class SubscriptionStore {
     }
 
     return availablePackages.first(where: { $0.packageType == packageType })
+  }
+
+  private func recoverPurchaseResult(from error: Error) async -> PurchaseResult? {
+    let nsError = error as NSError
+
+    if nsError.asErrorCode == .purchaseCancelledError {
+      return .cancelled
+    }
+
+    guard let errorCode = nsError.asErrorCode else { return nil }
+
+    switch errorCode {
+    case .productAlreadyPurchasedError, .receiptAlreadyInUseError,
+      .receiptInUseByOtherSubscriberError:
+      if let customerInfo = await syncCustomerInfoForRecovery(), hasEntitlement(in: customerInfo) {
+        toastCenter?.show(
+          message: "Proudly Plus is already active on this account.",
+          symbol: "checkmark.circle.fill"
+        )
+        return .unlocked
+      }
+
+      presentedAlert = SubscriptionAlert(
+        title: "Subscription already active",
+        message:
+          "This Apple ID already appears to have a Proudly Plus subscription. Try Restore Purchases or manage it from Apple's subscription settings."
+      )
+      return .failed
+
+    case .invalidReceiptError, .missingReceiptFileError:
+      if let customerInfo = await syncCustomerInfoForRecovery(), hasEntitlement(in: customerInfo) {
+        toastCenter?.show(
+          message: "Proudly Plus is already active on this account.",
+          symbol: "checkmark.circle.fill"
+        )
+        return .unlocked
+      }
+
+      return nil
+
+    default:
+      return nil
+    }
+  }
+
+  private func recoverRestoreResult(from error: Error) async -> RestoreResult? {
+    let nsError = error as NSError
+
+    guard let errorCode = nsError.asErrorCode else { return nil }
+
+    switch errorCode {
+    case .invalidReceiptError, .missingReceiptFileError,
+      .receiptAlreadyInUseError, .receiptInUseByOtherSubscriberError,
+      .productAlreadyPurchasedError:
+      if let customerInfo = await syncCustomerInfoForRecovery(), hasEntitlement(in: customerInfo) {
+        return .restoredPlus
+      }
+
+      return .noActiveSubscription
+
+    default:
+      return nil
+    }
+  }
+
+  private func syncCustomerInfoForRecovery() async -> CustomerInfo? {
+    do {
+      let syncedCustomerInfo = try await Purchases.shared.syncPurchases()
+      customerInfo = syncedCustomerInfo
+      return syncedCustomerInfo
+    } catch {
+      do {
+        let refreshedCustomerInfo = try await Purchases.shared.customerInfo()
+        customerInfo = refreshedCustomerInfo
+        return refreshedCustomerInfo
+      } catch {
+        return customerInfo
+      }
+    }
+  }
+
+  private func hasEntitlement(in customerInfo: CustomerInfo?) -> Bool {
+    guard let customerInfo else { return false }
+
+    if customerInfo.entitlements[RevenueCatConfig.proudlyPlusEntitlementID]?.isActive == true {
+      return true
+    }
+
+    return !customerInfo.activeSubscriptions.isDisjoint(with: plusProductIdentifiers)
+  }
+
+  private var plusProductIdentifiers: Set<String> {
+    [
+      RevenueCatConfig.monthlyProductID,
+      RevenueCatConfig.yearlyProductID,
+    ]
   }
 
   private func presentError(title: String, error: Error) {

@@ -119,25 +119,71 @@ struct ProudlyApp: App {
   @State private var habitRepository: HabitRepository
   @State private var appNavigationStore = AppNavigationStore.shared
   @State private var focusTimerStore = FocusTimerStore.shared
+  @State private var cloudKitSyncMonitor: CloudKitSyncMonitor
   @Environment(\.scenePhase) private var scenePhase
 
   let sharedModelContainer: ModelContainer
 
+  private static let cloudKitContainerIdentifier = "iCloud.com.proudlyhabit.Proudly"
+  static let iCloudSyncEnabledKey = "iCloudSyncEnabled"
+
   init() {
     let schema = Schema([PersistentHabit.self, PersistentHabitCompletion.self])
-    let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
-    let container: ModelContainer
-    do {
-      container = try ModelContainer(for: schema, configurations: [config])
-    } catch {
-      fatalError("Could not create ModelContainer: \(error)")
-    }
+    let userWantsCloudKit = UserDefaults.standard.bool(forKey: Self.iCloudSyncEnabledKey)
+    let cachedPlus = UserDefaults.standard.bool(forKey: ThemeViewModel.plusCacheKey)
+    let (container, cloudKitEnabled) = Self.makeContainer(
+      schema: schema, userWantsCloudKit: userWantsCloudKit && cachedPlus)
     let toastCenter = ToastCenter()
     sharedModelContainer = container
     _toastCenter = State(initialValue: toastCenter)
     _subscriptionStore = State(initialValue: SubscriptionStore(toastCenter: toastCenter))
     _habitRepository = State(
       initialValue: HabitRepository(modelContext: container.mainContext, toastCenter: toastCenter))
+    _cloudKitSyncMonitor = State(
+      initialValue: CloudKitSyncMonitor(cloudKitEnabled: cloudKitEnabled))
+  }
+
+  private static func makeContainer(schema: Schema, userWantsCloudKit: Bool) -> (
+    ModelContainer, Bool
+  ) {
+    if userWantsCloudKit {
+      let cloudConfig = ModelConfiguration(
+        schema: schema,
+        isStoredInMemoryOnly: false,
+        cloudKitDatabase: .private(cloudKitContainerIdentifier)
+      )
+      do {
+        let container = try ModelContainer(for: schema, configurations: [cloudConfig])
+        print("[Proudly] ModelContainer: CloudKit attached (\(cloudKitContainerIdentifier))")
+        return (container, true)
+      } catch {
+        print("[Proudly] CloudKit ModelContainer FAILED: \(error)")
+      }
+    } else {
+      print("[Proudly] ModelContainer: CloudKit disabled by user preference")
+    }
+
+    let localConfig = ModelConfiguration(
+      schema: schema,
+      isStoredInMemoryOnly: false,
+      cloudKitDatabase: .none
+    )
+    do {
+      let container = try ModelContainer(for: schema, configurations: [localConfig])
+      print("[Proudly] ModelContainer: local persistent (no CloudKit)")
+      return (container, false)
+    } catch {
+      print("[Proudly] Local ModelContainer FAILED: \(error)")
+    }
+
+    let memoryConfig = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
+    do {
+      let container = try ModelContainer(for: schema, configurations: [memoryConfig])
+      print("[Proudly] ModelContainer: in-memory fallback")
+      return (container, false)
+    } catch {
+      fatalError("Could not create ModelContainer after store reset: \(error)")
+    }
   }
 
   var body: some Scene {
@@ -149,11 +195,18 @@ struct ProudlyApp: App {
         .environment(habitRepository)
         .environment(appNavigationStore)
         .environment(focusTimerStore)
+        .environment(cloudKitSyncMonitor)
+        .task {
+          await cloudKitSyncMonitor.start()
+        }
     }
     .modelContainer(sharedModelContainer)
     .onChange(of: scenePhase) { _, phase in
       if phase == .active {
         focusTimerStore.refresh()
+        habitRepository.refresh()
+        habitRepository.refreshRemindersForAllHabits()
+        Task { await cloudKitSyncMonitor.refreshAccountStatus() }
       }
     }
   }
@@ -212,10 +265,14 @@ private struct RootView: View {
         habitRepository.seedIfNeeded()
       }
     }
+    .onChange(of: habitRepository.activeHabits) { _, _ in
+      hydrateExistingUsersIfNeeded()
+    }
   }
 
   private func hydrateExistingUsersIfNeeded() {
     guard UserDefaults.standard.object(forKey: "hasCompletedOnboarding") == nil else { return }
+    guard !hasStartedOnboardingFlow else { return }
 
     if !habitRepository.activeHabits.isEmpty
       || UserDefaults.standard.bool(forKey: "hasSeededDefaultHabits")

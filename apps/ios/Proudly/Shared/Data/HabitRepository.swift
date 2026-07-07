@@ -173,7 +173,11 @@ final class HabitRepository {
       existing.completedAt = .now
     } else {
       let completion = PersistentHabitCompletion(habitId: habit.id, dateKey: today, count: 1)
-      persistentHabit.completions.append(completion)
+      if persistentHabit.completions == nil {
+        persistentHabit.completions = [completion]
+      } else {
+        persistentHabit.completions?.append(completion)
+      }
     }
 
     persistentHabit.updatedAt = .now
@@ -336,7 +340,7 @@ final class HabitRepository {
 
   private func map(_ persistentHabit: PersistentHabit) -> Habit {
     let target = max(persistentHabit.dailyTargetCount, 1)
-    let countsByDate = persistentHabit.completions.reduce(into: [String: Int]()) {
+    let countsByDate = (persistentHabit.completions ?? []).reduce(into: [String: Int]()) {
       partialResult, completion in
       partialResult[completion.dateKey] = max(completion.count, 0)
     }
@@ -382,7 +386,7 @@ final class HabitRepository {
 
   private func completion(for habit: PersistentHabit, dateKey: String) -> PersistentHabitCompletion?
   {
-    habit.completions.first(where: { $0.dateKey == dateKey })
+    habit.completions?.first(where: { $0.dateKey == dateKey })
   }
 
   private func syncReminders(for habit: Habit) {
@@ -392,6 +396,12 @@ final class HabitRepository {
       } else {
         await notificationManager.cancelReminders(for: habit.id)
       }
+    }
+  }
+
+  func refreshRemindersForAllHabits() {
+    for habit in activeHabits {
+      syncReminders(for: habit)
     }
   }
 

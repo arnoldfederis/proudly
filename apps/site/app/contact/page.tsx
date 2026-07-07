@@ -41,7 +41,7 @@ const COMMON_QUESTIONS = [
   },
   {
     q: "Does Proudly have iCloud sync?",
-    a: "Not in v1. Proudly stores habit data locally on your device. iCloud sync is planned for a future update.",
+    a: "Yes, for Proudly Plus subscribers. iCloud sync is optional and can be enabled in Settings; your habit data is stored in your private iCloud account. Proudly continues to work locally when iCloud is unavailable.",
   },
   {
     q: "Does Proudly sell my data?",

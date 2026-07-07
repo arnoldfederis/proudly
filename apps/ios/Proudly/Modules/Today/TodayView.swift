@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct TodayView: View {
+  @AppStorage("userName") private var userName = ""
   @Environment(ThemeViewModel.self) private var theme
   @Environment(SubscriptionStore.self) private var subscriptionStore
   @Environment(HabitRepository.self) private var repository
@@ -43,7 +44,7 @@ struct TodayView: View {
         ScrollView {
           LazyVStack(spacing: 20) {
             VStack(alignment: .leading) {
-              Text("What will make you proud today?")
+              Text(todayPrompt)
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
             }
@@ -157,6 +158,12 @@ struct TodayView: View {
     .proudlyGlass()
     .scaleEffect(showsCelebrationCard ? 1 : 0.96)
     .opacity(showsCelebrationCard ? 1 : 0)
+  }
+
+  private var todayPrompt: String {
+    let trimmedName = userName.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !trimmedName.isEmpty else { return "What will make you proud today?" }
+    return "What will make you proud today \(trimmedName)?"
   }
 
   private var habitsSection: some View {

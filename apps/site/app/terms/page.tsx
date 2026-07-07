@@ -47,7 +47,7 @@ function BulletList({ items }: { items: string[] }) {
 export default function TermsPage() {
   return (
     <LegalPageShell
-      effectiveDate="Effective date: June 19, 2026"
+      effectiveDate="Effective date: July 3, 2026"
       intro="These Terms of Use explain how you may use Proudly, a gentle habit tracker for small wins."
       title="Terms of Use"
     >
@@ -110,6 +110,20 @@ export default function TermsPage() {
         <Body>
           Proudly can send local reminders to help you remember your habits.
           Reminders are only delivered if you grant notification permission.
+        </Body>
+      </Section>
+
+      <Section title="iCloud Sync">
+        <Body>
+          Proudly Plus subscribers can enable optional iCloud sync to keep habit
+          data consistent across their Apple devices. Sync is powered by Apple
+          iCloud and CloudKit and is only available while a Proudly Plus
+          subscription is active and iCloud is available on your device. Proudly
+          does not guarantee real-time or uninterrupted sync and is not
+          responsible for delays, conflicts, data loss, or availability issues
+          caused by iCloud, network conditions, or Apple's services. You can
+          disable iCloud sync at any time in Proudly Settings; a restart of the
+          app may be required for the change to take effect.
         </Body>
       </Section>
 

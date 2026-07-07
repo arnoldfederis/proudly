@@ -10,28 +10,24 @@ import SwiftData
 
 @Model
 final class PersistentHabit {
-  var id: UUID
-  var name: String
-  var icon: String
-  var colorHex: String
-  var note: String
-  var dailyTargetCount: Int
-  var remindersEnabled: Bool
-  var reminderTimes: String
+  var id: UUID = UUID()
+  var name: String = ""
+  var icon: String = ""
+  var colorHex: String = ""
+  var note: String = ""
+  var dailyTargetCount: Int = 1
+  var remindersEnabled: Bool = false
+  var reminderTimes: String = ""
   var reminderHour: Int?
   var reminderMinute: Int?
-  /// Decoupled from `dailyTargetCount`. Optional so legacy rows can fall
-  /// back to the count derived from `reminderTimes`.
   var reminderCount: Int?
-  /// Optional Focus Timer duration in minutes. `nil` means the habit has
-  /// no Focus Timer configured.
   var focusDurationMinutes: Int?
-  var createdAt: Date
-  var updatedAt: Date
-  var isArchived: Bool
+  var createdAt: Date = Date.now
+  var updatedAt: Date = Date.now
+  var isArchived: Bool = false
 
-  @Relationship(deleteRule: .cascade, inverse: \PersistentHabitCompletion.habit)
-  var completions: [PersistentHabitCompletion] = []
+  @Relationship(deleteRule: .nullify, inverse: \PersistentHabitCompletion.habit)
+  var completions: [PersistentHabitCompletion]? = []
 
   init(
     id: UUID = UUID(),
